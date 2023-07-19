@@ -12,7 +12,7 @@ pytest.importorskip(
 )
 from ska_sdp_func_python.calibration.operations import apply_gaintable
 from ska_sdp_func_python.calibration.solvers import (
-    best_refant_from_vis,
+    find_best_refant_from_vis,
     solve_gaintable,
 )
 from tests.testing_utils import simulate_gaintable, vis_with_component_data
@@ -504,23 +504,23 @@ def test_solve_gaintable_few_antennas_many_times():
     )
 
 
-def test_best_refant_from_vis():
+def test_find_best_refant_from_vis():
     """
     Test best reference antenna under multiple frequencies
     """
     vis = vis_with_component_data(
         "stokesI", "stokesI", [100.0, 0.0, 0.0, 0.0], nchan=10
     )
-    refant_sort = best_refant_from_vis(vis)
+    refant_sort = find_best_refant_from_vis(vis)
     assert (refant_sort[:5] == numpy.array([53, 13, 49, 17, 56])).all()
 
 
-def test_best_refant_from_vis_single_channel():
+def test_find_best_refant_from_vis_single_channel():
     """
     Test best reference antenna under single frequency
     """
     vis = vis_with_component_data(
         "stokesI", "stokesI", [100.0, 0.0, 0.0, 0.0], nchan=1
     )
-    refant_sort = best_refant_from_vis(vis)
+    refant_sort = find_best_refant_from_vis(vis)
     assert (refant_sort[:5] == numpy.array([0, 1, 2, 3, 4])).all()

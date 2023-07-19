@@ -7,6 +7,7 @@ __all__ = ["solve_gaintable"]
 import logging
 
 import numpy
+import scipy
 from ska_sdp_datamodels.calibration.calibration_create import (
     create_gaintable_from_visibility,
 )
@@ -18,7 +19,7 @@ from ska_sdp_func_python.visibility.operations import divide_visibility
 log = logging.getLogger("func-python-logger")
 
 
-def best_refant_from_vis(vis):
+def find_best_refant_from_vis(vis):
     """
     This method comes from katsdpcal.
     (https://github.com/ska-sa/katsdpcal/blob/
@@ -33,9 +34,6 @@ def best_refant_from_vis(vis):
     :return: sorted refant array
 
     """
-
-    import scipy
-
     visdata = vis.visibility_acc.flagged_vis
     _, _, nchan, _ = visdata.shape
     baselines = numpy.array(vis.baselines.data.tolist())
@@ -108,7 +106,7 @@ def solve_gaintable(
                      None means no normalization.
     :param jones_type: Type of calibration matrix T or G or B
     :param timeslice: Time interval between solutions (s)
-    :param refant: Phase alignment to its reference antenna
+    :param refant: Phase alignment to its reference antenna (default 0)
     :return: GainTable containing solution
 
     """
@@ -154,7 +152,7 @@ def solve_gaintable(
                 "Gaintable %s, vis time mismatch %s", gain_table.time, vis.time
             )
             continue
-        refant_sort = best_refant_from_vis(pointvis_sel)
+        refant_sort = find_best_refant_from_vis(pointvis_sel)
         x_b = numpy.sum(
             (pointvis_sel.vis.data * pointvis_sel.weight.data)
             * (1 - pointvis_sel.flags.data),
