@@ -50,11 +50,11 @@ def find_best_refant_from_vis(vis):
         med_pnr_ants += numpy.linspace(1e-8, 1e-9, nants)
     else:
         ft_vis = scipy.fftpack.fft(visdata, axis=2)
-        k_arg = numpy.argmax(numpy.abs(ft_vis), axis=2)
+        max_value_arg = numpy.argmax(numpy.abs(ft_vis), axis=2)
         index = numpy.array(
-            [numpy.roll(range(nchan), -n) for n in k_arg.ravel()]
+            [numpy.roll(range(nchan), -n) for n in max_value_arg.ravel()]
         )
-        index = index.reshape(list(k_arg.shape) + [nchan])
+        index = index.reshape(list(max_value_arg.shape) + [nchan])
         index = numpy.transpose(index, (0, 1, 3, 2))
         ft_vis = numpy.take_along_axis(ft_vis, index, axis=2)
 
@@ -107,7 +107,7 @@ def solve_gaintable(
                      None means no normalization.
     :param jones_type: Type of calibration matrix T or G or B
     :param timeslice: Time interval between solutions (s)
-    :param refant: Phase alignment to its reference antenna (default 0)
+    :param refant: Reference antenna (default 0)
     :return: GainTable containing solution
 
     """
@@ -582,7 +582,7 @@ def _solve_antenna_gains_itsubs_matrix(
     bad_ant = []
     for iant in range(nants):
         # The current judgment uses channel 0.
-        # If all polarizations of this channel are marked,
+        # If all polarizations of this channel are masked,
         # the antenna is considered bad
         thismask = gainmask[iant, 0]
         if numpy.all(thismask) is True:
