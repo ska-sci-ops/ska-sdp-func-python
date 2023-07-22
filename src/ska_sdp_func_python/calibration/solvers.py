@@ -30,8 +30,9 @@ def find_best_refant_from_vis(vis):
     When the input vis has only one channel, this uses all the vis of the
     same antenna for the operations peak, mean and std.
 
-    :param vis: Visibility containing the observed data_models
-    :return: sorted refant array
+    :param vis: Visibilities
+    :return: Array of indices of antennas in decreasing order
+            of median of PNR over all baselines
 
     """
     visdata = vis.visibility_acc.flagged_vis
@@ -281,6 +282,44 @@ def _solve_with_mask(
         )
 
 
+def _determine_refant(refant, bad_ant, refant_sort):
+    """
+    Determine the final reference antenna
+    :param refant: the given reference antenna
+    :param bad_ant: a list including all bad antennas
+    :param refant_sort: a list with the decrease order of
+                        reference antenna
+    :return reference antenna
+    """
+
+    if refant in bad_ant:
+        # Keep the original value of refant
+        thisrefant = refant
+
+        for ant_id in refant_sort:
+            if ant_id not in bad_ant:
+                # fetch an antenna from the refant_sort list and further judge
+                # if the antenna is not a bad antenna, if Yes, this antenna
+                # would be the final reference antenna
+                refant = ant_id
+                log.warning(
+                    "warning, ant: %d is masked, \
+                    change refant to ant: %d",
+                    thisrefant,
+                    refant,
+                )
+                break
+        else:
+            # If we cannot find a reference antenna, we have to use
+            # the original refant kept in thisrefant
+            log.warning(
+                "warning, Cannot find a suitable reference antenna,\
+                 use initial settings: %d",
+                thisrefant,
+            )
+            refant = thisrefant
+
+
 def _solve_antenna_gains_itsubs_scalar(
     gain,
     gwt,
@@ -335,26 +374,7 @@ def _solve_antenna_gains_itsubs_scalar(
         if numpy.all(thismask) is True:
             bad_ant.append(iant)
 
-    if refant in bad_ant:
-        thisrefant = refant
-
-        for ant_id in refant_sort:
-            if ant_id not in bad_ant:
-                refant = ant_id
-                log.warning(
-                    "warning, ant: %d is masked, \
-                    change refant to ant: %d",
-                    thisrefant,
-                    refant,
-                )
-                break
-        else:
-            log.warning(
-                "warning, Cannot find a suitable reference antenna,\
-                 use initial settings: %d",
-                thisrefant,
-            )
-            refant = thisrefant
+    _determine_refant(refant, bad_ant, refant_sort)
 
     numpy.putmask(gain, gainmask, 0.0)
     for _ in range(niter):
@@ -561,33 +581,14 @@ def _solve_antenna_gains_itsubs_matrix(
 
     bad_ant = []
     for iant in range(nants):
-        # TODO The current judgment uses channel 0.
+        # The current judgment uses channel 0.
         # If all polarizations of this channel are marked,
         # the antenna is considered bad
         thismask = gainmask[iant, 0]
         if numpy.all(thismask) is True:
             bad_ant.append(iant)
 
-    if refant in bad_ant:
-        thisrefant = refant
-
-        for ant_id in refant_sort:
-            if ant_id not in bad_ant:
-                refant = ant_id
-                log.warning(
-                    "warning, ant: %d is masked, \
-                    change refant to ant: %d",
-                    thisrefant,
-                    refant,
-                )
-                break
-        else:
-            log.warning(
-                "warning, Cannot find a suitable reference antenna,\
-                 use initial settings: %d",
-                thisrefant,
-            )
-            refant = thisrefant
+    _determine_refant(refant, bad_ant, refant_sort)
 
     numpy.putmask(gain, gainmask, 0.0)
     for _ in range(niter):

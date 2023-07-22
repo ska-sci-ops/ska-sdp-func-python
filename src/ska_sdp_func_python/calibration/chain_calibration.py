@@ -96,7 +96,7 @@ def apply_calibration_chain(
     :param controls: Controls dictionary, modified as necessary
     :param iteration: Iteration number to be compared
                     to the 'first_selfcal' field.
-    :param inverse: The inverse operation of appling a gain table
+    :param inverse: The inverse operation of applying a gain table
                     to a visibility
     :return: Visibility after calibration solution applied
              Or return original visibility if the GainTables provided
