@@ -513,9 +513,10 @@ def test_find_best_refant_from_vis():
     )
 
     refant_sort = find_best_refant_from_vis(vis)
-    # According to the input visibilities, we calculate the peak to noise ratio (PNR)
-    # for FFT results in channel axis. We then sort the PNR (decreased sort)
-    # to get a reference antenna candidates list.  The first antenna would have the
+    # According to the input visibilities, we calculate the peak to
+    # noise ratio (PNR) for FFT results in channel axis. We then
+    # sort the PNR (decreased sort) to get a reference antenna
+    # candidates list.  The first antenna would have the
     # maximum PNR.
     assert (refant_sort[:5] == numpy.array([53, 13, 49, 17, 56])).all()
 
