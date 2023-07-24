@@ -1,6 +1,7 @@
 """
 Unit tests for calibration solution
 """
+import numpy
 import pytest
 from ska_sdp_datamodels.calibration.calibration_create import (
     create_gaintable_from_visibility,
@@ -10,7 +11,10 @@ pytest.importorskip(
     modname="ska_sdp_func", reason="ska-sdp-func is an optional dependency"
 )
 from ska_sdp_func_python.calibration.operations import apply_gaintable
-from ska_sdp_func_python.calibration.solvers import solve_gaintable
+from ska_sdp_func_python.calibration.solvers import (
+    find_best_refant_from_vis,
+    solve_gaintable,
+)
 from tests.testing_utils import simulate_gaintable, vis_with_component_data
 
 
@@ -23,49 +27,49 @@ from tests.testing_utils import simulate_gaintable, vis_with_component_data
             "circular",
             [100.0, 0.0, 0.0, 50.0],
             10.0,
-            (61.44194904161769, -0.028730599005608592),
+            (-2.3575149649, -19.50250306305245),
         ),
         (
             "stokesIQUV",
             "linear",
             [100.0, 50.0, 0.0, 0.0],
             10.0,
-            (61.44194904161769, -0.028730599005608592),
+            (-2.3575149649, -19.50250306305245),
         ),
         (
             "stokesIV",
             "circularnp",
             [100.0, 50.0],
             0.1,
-            (748.2141413044451, -2.679009413197875e-07),
+            (745.2361964760858, 23.999242596777464),
         ),
         (
             "stokesIQ",
             "linearnp",
             [100.0, 50.0],
             0.1,
-            (748.2141413044451, -2.679009413197875e-07),
+            (745.2361964760858, 23.999242596777464),
         ),
         (
             "stokesIQUV",
             "circular",
             [100.0, 0.0, 0.0, 50.0],
             0.1,
-            (748.2141413044451, -2.679009413197875e-07),
+            (745.2361964760858, 23.999242596777464),
         ),
         (
             "stokesIQUV",
             "linear",
             [100.0, 50.0, 0.0, 0.0],
             0.1,
-            (748.2141413044451, -2.679009413197875e-07),
+            (745.2361964760858, 23.999242596777464),
         ),
         (
             "stokesI",
             "stokesI",
             [100.0, 0.0, 0.0, 0.0],
             0.1,
-            (372.357810300829, 23.57909603997496),
+            (372.3578195252, 23.5790571427),
         ),
     ],
 )
@@ -119,28 +123,28 @@ def test_solve_gaintable_phase_only(
             "circularnp",
             [100.0, 50.0],
             0.01,
-            (748.3974636435, -0.0004744257),
+            (745.4165220744279, -23.978608965851272),
         ),
         (
             "stokesIQUV",
             "circular",
             [100.0, 0.0, 0.0, 50.0],
             0.01,
-            (748.3974636435, -0.0004744257),
+            (745.4165220744279, -23.978608965851272),
         ),
         (
             "stokesIQUV",
             "linear",
             [100.0, 50.0, 0.0, 0.0],
             0.01,
-            (748.3974636435, -0.0004744257),
+            (745.4165220744279, -23.978608965851272),
         ),
         (
             "stokesI",
             "stokesI",
             [100.0, 0.0, 0.0, 0.0],
             0.1,
-            (372.3091261026, -23.8917859668),
+            (372.30912577554244, -23.891788423254088),
         ),
     ],
 )
@@ -228,10 +232,10 @@ def test_solve_gaintable_crosspol(sky_pol_frame, data_pol_frame, flux_array):
     )
 
     assert result_gain_table["gain"].data.sum().real.round(10) == round(
-        748.3974636435, 10
+        745.4165220744279, 10
     )
     assert result_gain_table["gain"].data.sum().imag.round(10) == round(
-        -0.0004744257, 10
+        -23.978608965851272, 10
     )
 
 
@@ -299,10 +303,10 @@ def test_solve_gaintable_normalise():
     )
 
     assert (
-        result_gain_table["gain"].data.sum().real.round(10) == 372.3183602181
+        result_gain_table["gain"].data.sum().real.round(10) == 372.3183599042
     )
     assert (
-        result_gain_table["gain"].data.sum().imag.round(10) == -23.8923785376
+        result_gain_table["gain"].data.sum().imag.round(10) == -23.8923809949
     )
 
 
@@ -316,7 +320,7 @@ def test_solve_gaintable_normalise():
             [100.0, 0.0, 0.0, 0.0],
             False,
             32,
-            (11920.084395988404, 2.887045666355),
+            (11920.084395699654, 2.887044851959022),
         ),
         (
             "stokesIQUV",
@@ -324,7 +328,7 @@ def test_solve_gaintable_normalise():
             [100.0, 0.0, 0.0, 50.0],
             True,
             4,
-            (5986.724197075842, 0.04796985620607441),
+            (5961.616892881827, -4.6464727494239),
         ),
         (
             "stokesIQUV",
@@ -332,7 +336,7 @@ def test_solve_gaintable_normalise():
             [100.0, 50.0, 0.0, 0.0],
             False,
             32,
-            (47888.58029678579, 0.026605800133365776),
+            (47695.42885072535, -290.36562000082),
         ),
     ],
 )
@@ -393,7 +397,7 @@ def test_solve_gaintable_bandpass(
             [100.0, 0.0, 0.0, 0.0],
             False,
             32,
-            (11982.513165958, 2.9021659209),
+            (11982.513069270433, 2.9021650788520645),
         ),
         (
             "stokesIQUV",
@@ -401,7 +405,7 @@ def test_solve_gaintable_bandpass(
             [100.0, 0.0, 0.0, 50.0],
             True,
             4,
-            (8595.7168462227, 0.0688749452),
+            (8559.667870101628, -6.671388688198775),
         ),
         (
             "stokesIQUV",
@@ -409,7 +413,7 @@ def test_solve_gaintable_bandpass(
             [100.0, 50.0, 0.0, 0.0],
             False,
             32,
-            (74575.1328544933, 0.0414322385),
+            (74274.34517898227, -452.1757494947468),
         ),
     ],
 )
@@ -493,8 +497,36 @@ def test_solve_gaintable_few_antennas_many_times():
     )
 
     assert (
-        result_gain_table["gain"].data.sum().real.round(10) == 2393.9044551139
+        result_gain_table["gain"].data.sum().real.round(10) == 2393.9044547675
     )
     assert (
-        result_gain_table["gain"].data.sum().imag.round(10) == -24.2584023116
+        result_gain_table["gain"].data.sum().imag.round(10) == -24.2584035058
     )
+
+
+def test_find_best_refant_from_vis():
+    """
+    Test best reference antenna under multiple frequencies
+    """
+    vis = vis_with_component_data(
+        "stokesI", "stokesI", [100.0, 0.0, 0.0, 0.0], nchan=10
+    )
+
+    refant_sort = find_best_refant_from_vis(vis)
+    # According to the input visibilities, we calculate the peak to
+    # noise ratio (PNR) for FFT results in channel axis. We then
+    # sort the PNR (decreased sort) to get a reference antenna
+    # candidates list.  The first antenna would have the
+    # maximum PNR.
+    assert (refant_sort[:5] == numpy.array([53, 13, 49, 17, 56])).all()
+
+
+def test_find_best_refant_from_vis_single_channel():
+    """
+    Test best reference antenna under single frequency
+    """
+    vis = vis_with_component_data(
+        "stokesI", "stokesI", [100.0, 0.0, 0.0, 0.0], nchan=1
+    )
+    refant_sort = find_best_refant_from_vis(vis)
+    assert (refant_sort[:5] == numpy.array([0, 1, 2, 3, 4])).all()
