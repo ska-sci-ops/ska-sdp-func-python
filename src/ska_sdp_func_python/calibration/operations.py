@@ -28,10 +28,12 @@ def apply_gaintable(
 ) -> Visibility:
     """
     Apply a GainTable to a Visibility.
-
     The corrected visibility is::
 
         V_corrected = {g_i * g_j^*}^-1 V_obs
+
+    see https://github.com/ratt-ru/fundamentals_of_interferometry/blob/
+    master/8_Calibration/8_1_calibration_least_squares_problem.ipynb
 
     If the visibility data are polarised
     e.g. polarisation_frame("linear") then the inverse operator
