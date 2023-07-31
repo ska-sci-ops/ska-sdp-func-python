@@ -78,6 +78,7 @@ def apply_calibration_chain(
     calibration_context="T",
     controls=None,
     iteration=0,
+    inverse=True,
 ):
     """
     Update the Visibility using the calibrated solutions
@@ -95,6 +96,8 @@ def apply_calibration_chain(
     :param controls: Controls dictionary, modified as necessary
     :param iteration: Iteration number to be compared
                     to the 'first_selfcal' field.
+    :param inverse: The inverse operation of applying a gain table
+                    to a visibility
     :return: Visibility after calibration solution applied
              Or return original visibility if the GainTables provided
              don't match the calibration context.
@@ -117,6 +120,8 @@ def apply_calibration_chain(
                 gt[gaintable.attrs["jones_type"]] = gaintable
     elif isinstance(gaintables, dict):
         gt = gaintables
+        for context, _ in gaintables.items():
+            contexts.append(context)
 
     else:
         log.warning(
@@ -129,7 +134,7 @@ def apply_calibration_chain(
     if contexts:
         for c in contexts:
             if iteration >= controls[c]["first_selfcal"]:
-                vis = apply_gaintable(vis, gt[c])
+                vis = apply_gaintable(vis, gt[c], inverse=inverse)
 
     return vis
 

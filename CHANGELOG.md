@@ -1,5 +1,9 @@
 # Changelog
 
+0.2.3
+----
+* Added searching best reference antenna for gain calibration ([MR36](https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/merge_requests/36))
+
 0.2.2
 ----
 * Fixing partial gain solver errors ([MR34](https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/merge_requests/34)) 
