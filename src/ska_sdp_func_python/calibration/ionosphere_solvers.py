@@ -26,6 +26,7 @@ def solve_ionosphere(
     modelvis: Visibility,
     xyz,
     cluster_id=None,
+    block_diagonal=False,
     niter=15,
     tol=1e-6,
 ) -> GainTable:
@@ -47,6 +48,10 @@ def solve_ionosphere(
         local horizontal frame
     :param cluster_id: [n_antenna] array containing the cluster ID of each
         antenna. Defaults to a single cluster comprising all stations
+    :param block_diagonal: If true, each cluster will be solver for separately
+        during each iteration. This is equivalent to setting all elements of
+        the normal matrix to zero except for the block diagonal elements for
+        the cluster in question. (default False)
     :param niter: Number of iterations (default 15)
     :param tol: Iteration stops when the fractional change in the gain solution
         is below this tolerance.
@@ -92,12 +97,38 @@ def solve_ionosphere(
         )
 
     for it in range(niter):
-        [AA, Ab] = build_normal_equation(
-            vis, modelvis, param, coeff, cluster_id
-        )
 
-        # Solve the normal equations and update parameters
-        param_update = solve_normal_equation(AA, Ab, param, it)
+        if not block_diagonal:
+
+            [AA, Ab] = build_normal_equation(
+                vis, modelvis, param, coeff, cluster_id
+            )
+
+            # Solve the normal equations and update parameters
+            param_update = solve_normal_equation(AA, Ab, param, it)
+
+        else:
+
+            i0 = 0
+            param_update = []
+            for cid in range(n_cluster):
+                n_cparam = len(param[cid])
+
+                # would be faster to do this separately for each cluster
+                [AA, Ab] = build_normal_equation(
+                    vis, modelvis, param, coeff, cluster_id, cid
+                )
+
+                # Solve the current incremental normal equations
+                soln_vec = numpy.linalg.lstsq(AA, Ab, rcond=None)[0]
+
+                # Update factor
+                nu = 0.5
+                # nu = 1.0 - 0.5 * (it % 2)
+                param_update.append(nu * soln_vec)
+                param[cid] += param_update[cid]
+
+                i0 += n_cparam
 
         # Update the model
         apply_phase_distortions(modelvis, param_update, coeff, cluster_id)
