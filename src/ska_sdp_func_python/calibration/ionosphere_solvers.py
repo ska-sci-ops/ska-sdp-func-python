@@ -317,7 +317,7 @@ def build_normal_equation(
 
     # set up a few references and constants
     frequency = vis.frequency.data
-    wl = const.c.value / frequency
+    wl_const = 2.0 * numpy.pi * const.c.value / frequency
     ant1 = vis.antenna1.data
     ant2 = vis.antenna2.data
     vis_data = vis.vis.data
@@ -335,6 +335,8 @@ def build_normal_equation(
     AA = numpy.zeros((n_param, n_param))
     Ab = numpy.zeros(n_param)
 
+    blidx = numpy.arange(n_baselines)
+
     for chan in range(len(frequency)):
         # Could accumulate AA and Ab directly, but go via a
         # design matrix for clarity. Update later if need be.
@@ -346,45 +348,32 @@ def build_normal_equation(
         #                 ~ |M|^2 * 2*pi * wl * fit
         # real(M*conj(M)) = |M|^2
 
-        # Precalculate some constants
-        A0 = 2.0 * numpy.pi * wl[chan] * mdl_data[0, :, chan, 0]
-
         # Loop over pairs of clusters and update the design matrix for the
         # associated baselines
-        for cid1 in range(0, n_cluster):
-            pidx1 = numpy.arange(pidx0[cid1], pidx0[cid1] + len(param[cid1]))
+        for cid in range(0, n_cluster):
+            pidx = numpy.arange(pidx0[cid], pidx0[cid] + len(param[cid]))
 
-            for cid2 in range(0, n_cluster):
-                pidx2 = numpy.arange(
-                    pidx0[cid2], pidx0[cid2] + len(param[cid2])
-                )
-
-                # A mask for all baselines in this cluster pair
-                mask = (
-                    mask0 * (stn2cid[ant1] == cid1) * (stn2cid[ant2] == cid2)
-                )
-
-                if numpy.sum(mask) == 0:
-                    continue
-
-                # indices of baselines in this cluster pair
-                blidx = numpy.arange(n_baselines)[mask]
-
+            # A mask for all baselines with ant1 in this cluster
+            mask = mask0 * (stn2cid[ant1] == cid)
+            if numpy.sum(mask) > 0:
                 # [nvis] A0 terms x [nvis,nparam] coeffs (1st antenna)
                 # all masked antennas have the same number of coeffs so can
                 # form a coeff matrix and multiply
-                ii, jj = numpy.meshgrid(pidx1, blidx, indexing="ij")
+                ii, jj = numpy.meshgrid(pidx, blidx[mask], indexing="ij")
                 A[ii, jj] += numpy.einsum(
                     "b,bp->pb",
-                    A0[mask],
+                    wl_const[chan] * mdl_data[0, mask, chan, 0],
                     numpy.vstack(coeff[ant1[mask]]).astype("float_"),
                 )
 
+            # A mask for all baselines with ant2 in this cluster
+            mask = mask0 * (stn2cid[ant2] == cid)
+            if numpy.sum(mask) > 0:
                 # [nvis] A0 terms x [nvis,nparam] coeffs (2nd antenna)
-                ii, jj = numpy.meshgrid(pidx2, blidx, indexing="ij")
+                ii, jj = numpy.meshgrid(pidx, blidx[mask], indexing="ij")
                 A[ii, jj] -= numpy.einsum(
                     "b,bp->pb",
-                    A0[mask],
+                    wl_const[chan] * mdl_data[0, mask, chan, 0],
                     numpy.vstack(coeff[ant2[mask]]).astype("float_"),
                 )
 
