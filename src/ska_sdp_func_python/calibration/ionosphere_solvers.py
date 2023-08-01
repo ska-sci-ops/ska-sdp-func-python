@@ -114,7 +114,6 @@ def solve_ionosphere(
             for cid in range(n_cluster):
                 n_cparam = len(param[cid])
 
-                # would be faster to do this separately for each cluster
                 [AA, Ab] = build_normal_equation(
                     vis, modelvis, param, coeff, cluster_id, cid
                 )
@@ -153,10 +152,10 @@ def set_cluster_maps(cluster_id):
     """
     Return vectors to help convert between station and cluster indices
 
-    :param: cluster_id
+    :param: cluster_id: [n_antenna] array of antenna cluster indices
     :return n_cluster: total number of clusters
-    :return cid2stn: mapping from station index to cluster index
-    :return stn2cid: mapping from cluster index to a list of station indices
+    :return cid2stn: mapping from cluster index to List of station indices
+    :return stn2cid: mapping from station index to cluster index
 
     """
     n_station = len(cluster_id)
@@ -213,7 +212,7 @@ def set_coeffs_and_params(
     :param vis: Visibility containing the observed data_model
     :param xyz: [n_antenna,3] array containing the antenna locations in the
         local horizontal frame
-    :param cluster_id:
+    :param cluster_id: [n_antenna] array of antenna cluster indices
     :return param: [n_cluster] list of solution vectors
     :return coeff: [n_station] list of basis-func value vectors
         Stored as a numpy dtype=object array of variable-length coeff vectors
@@ -274,7 +273,7 @@ def apply_phase_distortions(
     :param param: [n_cluster] list of solution vectors, one for each cluster
     :param coeff: [n_station] list of basis-func value vectors, one per station
         Stored as a numpy dtype=object array of variable-length coeff vectors
-    :param cluster_id:
+    :param cluster_id: [n_antenna] array of antenna cluster indices
 
     """
     # Get common mapping vectors between stations and clusters
@@ -328,8 +327,8 @@ def build_normal_equation(
     param,
     coeff,
     cluster_id,
+    cid=None,
 ):
-    # pylint: disable=too-many-locals
     """
     Build normal equations for the chosen parameters and the current model
     visibilties
@@ -339,16 +338,20 @@ def build_normal_equation(
     :param param: [n_cluster] list of solution vectors, one for each cluster
     :param coeff: [n_station] list of basis-func value vectors, one per station
         Stored as a numpy dtype=object array of variable-length coeff vectors
-    :param cluster_id:
+    :param cluster_id: [n_antenna] array of antenna cluster indices
+    :param cid: index of current cluster. Defaults to None, which will build
+        a single large matrix for all clusters.
 
     """
+
+    # If no cluster index is given, build matrix for all clusters
+    generate_full_equation = (cid is None)
+
     # Get common mapping vectors between stations and clusters
     [n_cluster, _, stn2cid] = set_cluster_maps(cluster_id)
-    [n_param, pidx0] = get_param_count(param)
 
-    # set up a few references and constants
-    frequency = vis.frequency.data
-    wl_const = 2.0 * numpy.pi * const.c.value / frequency
+    # Set up a few refs/consts to use in loops and function calls
+    wl_const = 2.0 * numpy.pi * const.c.value / vis.frequency.data
     ant1 = vis.antenna1.data
     ant2 = vis.antenna2.data
     vis_data = vis.vis.data
@@ -356,58 +359,66 @@ def build_normal_equation(
 
     n_baselines = len(vis.baselines)
 
-    # exclude auto-correlations from the mask
-    mask0 = ant1 != ant2
+    # Exclude auto-correlations from the mask
+    mask = ant1 != ant2
 
     # Loop over frequency and accumulate normal equations
     # Could probably handly frequency within an einsum as well.
     # It is also a natural axis for parallel calculation of AA and Ab.
 
+    if generate_full_equation:
+        [n_param, pidx0] = get_param_count(param)
+    else:
+        n_param = len(param[cid])
+ 
     AA = numpy.zeros((n_param, n_param))
     Ab = numpy.zeros(n_param)
+ 
+    for chan in range(len(vis.frequency.data)):
 
-    blidx = numpy.arange(n_baselines)
-
-    for chan in range(len(frequency)):
         # Could accumulate AA and Ab directly, but go via a
         # design matrix for clarity. Update later if need be.
-
-        A = numpy.zeros((n_param, n_baselines), "complex_")
-
+ 
         # V = M * exp(i * 2*pi * wl * fit)
         # imag(V*conj(M)) = imag(|M|^2 * exp(i * 2*pi * wl * fit))
         #                 ~ |M|^2 * 2*pi * wl * fit
         # real(M*conj(M)) = |M|^2
 
-        # Loop over pairs of clusters and update the design matrix for the
-        # associated baselines
-        for cid in range(0, n_cluster):
-            pidx = numpy.arange(pidx0[cid], pidx0[cid] + len(param[cid]))
+        if generate_full_equation:
+ 
+            A = numpy.zeros((n_param, n_baselines), "complex_")
+ 
+            # Loop over clusters and update the design matrix for the
+            # associated baselines
+            for cid in range(0, n_cluster):
+                pidx = numpy.arange(pidx0[cid], pidx0[cid] + len(param[cid]))
 
-            # A mask for all baselines with ant1 in this cluster
-            mask = mask0 * (stn2cid[ant1] == cid)
-            if numpy.sum(mask) > 0:
-                # [nvis] A0 terms x [nvis,nparam] coeffs (1st antenna)
-                # all masked antennas have the same number of coeffs so can
-                # form a coeff matrix and multiply
-                ii, jj = numpy.meshgrid(pidx, blidx[mask], indexing="ij")
-                A[ii, jj] += numpy.einsum(
-                    "b,bp->pb",
-                    wl_const[chan] * mdl_data[0, mask, chan, 0],
-                    numpy.vstack(coeff[ant1[mask]]).astype("float_"),
+                A[pidx, :] += cluster_design_matrix(
+                    mdl_data[0, :, chan, 0],
+                    mask,
+                    ant1,
+                    ant2,
+                    coeff,
+                    stn2cid,
+                    wl_const[chan],
+                    len(param[cid]),
+                    cid,
                 )
+ 
+        else:
 
-            # A mask for all baselines with ant2 in this cluster
-            mask = mask0 * (stn2cid[ant2] == cid)
-            if numpy.sum(mask) > 0:
-                # [nvis] A0 terms x [nvis,nparam] coeffs (2nd antenna)
-                ii, jj = numpy.meshgrid(pidx, blidx[mask], indexing="ij")
-                A[ii, jj] -= numpy.einsum(
-                    "b,bp->pb",
-                    wl_const[chan] * mdl_data[0, mask, chan, 0],
-                    numpy.vstack(coeff[ant2[mask]]).astype("float_"),
-                )
-
+            A = cluster_design_matrix(
+                mdl_data[0, :, chan, 0],
+                mask,
+                ant1,
+                ant2,
+                coeff,
+                stn2cid,
+                wl_const[chan],
+                n_param,
+                cid,
+            )
+ 
         # Average over all baselines for each param pair
         AA += numpy.real(numpy.einsum("pb,qb->pq", numpy.conj(A), A))
         Ab += numpy.imag(
@@ -419,6 +430,65 @@ def build_normal_equation(
         )
 
     return AA, Ab
+
+
+def cluster_design_matrix(
+    mdl_data,
+    mask0,
+    ant1,
+    ant2,
+    coeff,
+    stn2cid,
+    wl_const,
+    n_param,
+    cid,
+) -> numpy.ndarray:
+    """
+    Generate elements of the design matrix for the current cluster
+
+    Dereference outside of loops and the function call to avoid overheads
+
+    :param mdl_data: [n_time,n_baseline,n_pol] predicted model vis for chan
+    :param mask0: [n_baseline] mask of wanted data samples
+    :param ant1: [n_baseline] station index of first antenna in each baseline
+    :param ant2: [n_baseline] station index of second antenna in each baseline
+    :param coeff: [n_station] list of basis-func value vectors, one per station
+    :param stn2cid: [n_station] mapping from station index to cluster index
+    :param wl_const: 2*pi*lambda for the current frequency channel
+    :param cid: index of current cluster
+    :param n_param: number of parameters in Normal equation
+
+    """
+ 
+    n_baselines = len(mask0)
+
+    A = numpy.zeros((n_param, n_baselines), "complex_")
+
+    blidx_all = numpy.arange(n_baselines)
+
+    # Get all masked baselines with ant1 in this cluster
+    blidx = blidx_all[mask0 * (stn2cid[ant1] == cid)]
+    if len(blidx) > 0:
+        # [nvis] A0 terms x [nvis,nparam] coeffs (1st antenna)
+        # all masked antennas have the same number of coeffs so can vstack
+        A[:, blidx] += numpy.einsum(
+            "b,bp->pb",
+            wl_const * mdl_data[blidx],
+            numpy.vstack(coeff[ant1[blidx]]).astype("float_"),
+        )
+    
+    # Get all masked baselines with ant2 in this cluster
+    blidx = blidx_all[mask0 * (stn2cid[ant2] == cid)]
+    if len(blidx) > 0:
+        # [nvis] A0 terms x [nvis,nparam] coeffs (2nd antenna)
+        # all masked antennas have the same number of coeffs so can vstack
+        A[:, blidx] -= numpy.einsum(
+            "b,bp->pb",
+            wl_const * mdl_data[blidx],
+            numpy.vstack(coeff[ant2[blidx]]).astype("float_"),
+        )
+
+    return A
 
 
 def solve_normal_equation(
@@ -484,7 +554,7 @@ def update_gain_table(
     :param param: [n_cluster] list of solution vectors, one for each cluster
     :param coeff: [n_station] list of basis-func value vectors, one per station
         Stored as a numpy dtype=object array of variable-length coeff vectors
-    :param cluster_id:
+    :param cluster_id: [n_antenna] array of antenna cluster indices
 
     """
     # Get common mapping vectors between stations and clusters
