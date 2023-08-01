@@ -26,6 +26,7 @@ def solve_ionosphere(
     modelvis: Visibility,
     xyz,
     cluster_id=None,
+    cluster_0_degree=None,
     block_diagonal=False,
     niter=15,
     tol=1e-6,
@@ -48,6 +49,8 @@ def solve_ionosphere(
         local horizontal frame
     :param cluster_id: [n_antenna] array containing the cluster ID of each
         antenna. Defaults to a single cluster comprising all stations
+    :param cluster_0_degree: max Zernike degree for the first cluster.
+        Default is to leave unset when calling zern_array().
     :param block_diagonal: If true, each cluster will be solver for separately
         during each iteration. This is equivalent to setting all elements of
         the normal matrix to zero except for the block diagonal elements for
@@ -76,7 +79,7 @@ def solve_ionosphere(
         raise ValueError(f"cluster_id has wrong size {len(cluster_id)}")
 
     # Calculate coefficients for each cluster and initialise parameter values
-    [param, coeff] = set_coeffs_and_params(xyz, cluster_id)
+    [param, coeff] = set_coeffs_and_params(xyz, cluster_id, cluster_0_degree)
 
     n_param = get_param_count(param)[0]
 
@@ -204,15 +207,17 @@ def get_param_count(param):
 def set_coeffs_and_params(
     xyz,
     cluster_id,
+    cluster_0_degree=None,
 ):
     """
     Calculate coefficients (a basis function value vector for each cluster) and
     initialise parameter values (a solution vector for each station)
 
-    :param vis: Visibility containing the observed data_model
     :param xyz: [n_antenna,3] array containing the antenna locations in the
         local horizontal frame
     :param cluster_id: [n_antenna] array of antenna cluster indices
+    :param cluster_0_degree: max Zernike degree for the first cluster.
+        Default n+|m| <= 6.
     :return param: [n_cluster] list of solution vectors
     :return coeff: [n_station] list of basis-func value vectors
         Stored as a numpy dtype=object array of variable-length coeff vectors
@@ -229,9 +234,12 @@ def set_coeffs_and_params(
     # treat cluster zero differently; it is assumed to be a larger central core
     cid = 0
 
+    if cluster_0_degree is None:
+        cluster_0_degree = 6
+
     # Get Zernike parameters for the stations in this cluster
     zern_params = zern_array(
-        6, xyz[cid2stn[cid], 0], xyz[cid2stn[cid], 1], noll_order=False
+        cluster_0_degree, xyz[cid2stn[cid], 0], xyz[cid2stn[cid], 1]
     )
 
     for idx, stn in enumerate(cid2stn[cid]):
