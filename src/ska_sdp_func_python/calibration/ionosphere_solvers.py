@@ -100,9 +100,7 @@ def solve_ionosphere(
         )
 
     for it in range(niter):
-
         if not block_diagonal:
-
             [AA, Ab] = build_normal_equation(
                 vis, modelvis, param, coeff, cluster_id
             )
@@ -111,7 +109,6 @@ def solve_ionosphere(
             param_update = solve_normal_equation(AA, Ab, param, it)
 
         else:
-
             i0 = 0
             param_update = []
             for cid in range(n_cluster):
@@ -337,6 +334,7 @@ def build_normal_equation(
     cluster_id,
     cid=None,
 ):
+    # pylint: disable=too-many-locals
     """
     Build normal equations for the chosen parameters and the current model
     visibilties
@@ -353,7 +351,7 @@ def build_normal_equation(
     """
 
     # If no cluster index is given, build matrix for all clusters
-    generate_full_equation = (cid is None)
+    generate_full_equation = cid is None
 
     # Get common mapping vectors between stations and clusters
     [n_cluster, _, stn2cid] = set_cluster_maps(cluster_id)
@@ -378,30 +376,28 @@ def build_normal_equation(
         [n_param, pidx0] = get_param_count(param)
     else:
         n_param = len(param[cid])
- 
+
     AA = numpy.zeros((n_param, n_param))
     Ab = numpy.zeros(n_param)
- 
-    for chan in range(len(vis.frequency.data)):
 
+    for chan in range(len(vis.frequency.data)):
         # Could accumulate AA and Ab directly, but go via a
         # design matrix for clarity. Update later if need be.
- 
+
         # V = M * exp(i * 2*pi * wl * fit)
         # imag(V*conj(M)) = imag(|M|^2 * exp(i * 2*pi * wl * fit))
         #                 ~ |M|^2 * 2*pi * wl * fit
         # real(M*conj(M)) = |M|^2
 
         if generate_full_equation:
- 
             A = numpy.zeros((n_param, n_baselines), "complex_")
- 
+
             # Loop over clusters and update the design matrix for the
             # associated baselines
-            for cid in range(0, n_cluster):
-                pidx = numpy.arange(pidx0[cid], pidx0[cid] + len(param[cid]))
+            for _cid in range(0, n_cluster):
+                pid = numpy.arange(pidx0[_cid], pidx0[_cid] + len(param[_cid]))
 
-                A[pidx, :] += cluster_design_matrix(
+                A[pid, :] += cluster_design_matrix(
                     mdl_data[0, :, chan, 0],
                     mask,
                     ant1,
@@ -409,12 +405,11 @@ def build_normal_equation(
                     coeff,
                     stn2cid,
                     wl_const[chan],
-                    len(param[cid]),
-                    cid,
+                    len(param[_cid]),
+                    _cid,
                 )
- 
-        else:
 
+        else:
             A = cluster_design_matrix(
                 mdl_data[0, :, chan, 0],
                 mask,
@@ -426,7 +421,7 @@ def build_normal_equation(
                 n_param,
                 cid,
             )
- 
+
         # Average over all baselines for each param pair
         AA += numpy.real(numpy.einsum("pb,qb->pq", numpy.conj(A), A))
         Ab += numpy.imag(
@@ -467,7 +462,7 @@ def cluster_design_matrix(
     :param n_param: number of parameters in Normal equation
 
     """
- 
+
     n_baselines = len(mask0)
 
     A = numpy.zeros((n_param, n_baselines), "complex_")
@@ -484,7 +479,7 @@ def cluster_design_matrix(
             wl_const * mdl_data[blidx],
             numpy.vstack(coeff[ant1[blidx]]).astype("float_"),
         )
-    
+
     # Get all masked baselines with ant2 in this cluster
     blidx = blidx_all[mask0 * (stn2cid[ant2] == cid)]
     if len(blidx) > 0:
