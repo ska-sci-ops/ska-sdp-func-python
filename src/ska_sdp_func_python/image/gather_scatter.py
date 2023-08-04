@@ -166,11 +166,13 @@ def image_gather_facets(
     return out
 
 
-def image_scatter_channels(im: Image, subimages=None) -> List[Image]:
+def image_scatter_channels(im: Image, subimages=1) -> List[Image]:
     """Scatter an Image into a list of subimages using the channels.
 
     :param im: Image
-    :param subimages: Number of channels
+    :param subimages: Number of channels (default is 1)
+                      Please do not use None since it's not supported
+                      by xarray.
     :return: list of subimages
 
     See also
@@ -181,7 +183,9 @@ def image_scatter_channels(im: Image, subimages=None) -> List[Image]:
 
     return [
         r[1]
-        for r in im.groupby_bins("frequency", bins=subimages, squeeze=False)
+        for r in im.groupby_bins(
+            "frequency", right=False, bins=subimages, squeeze=False
+        )
     ]
 
 
