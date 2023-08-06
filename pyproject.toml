@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ska-sdp-func-python"
-version = "0.2.3"
+version = "0.2.4"
 description = "SKA SDP Python-Based Processing Functions"
 authors = ["SKA SDP Developers"]
 license = "Apache 2.0"

@@ -1,5 +1,8 @@
 # Changelog
 
+0.2.4
+----
+* Update xarray to newest version and resolved dependencies ([MR37](https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/merge_requests/37))
 0.2.3
 ----
 * Added searching best reference antenna for gain calibration ([MR36](https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/merge_requests/36))
