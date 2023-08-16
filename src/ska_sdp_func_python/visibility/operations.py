@@ -14,6 +14,7 @@ __all__ = [
     "convert_visibility_to_stokesI",
     "convert_visibility_stokesI_to_polframe",
     "expand_polarizations",
+    "copy_data_and_shrink_polarizations",
 ]
 
 import logging
@@ -500,4 +501,38 @@ def expand_polarizations(data, dtype=None):
     else:
         data_out[:, :, 0] = data[:, :, 0]
         data_out[:, :, 3] = data[:, :, 0]
+    return data_out
+
+
+def copy_data_and_shrink_polarizations(data, nr_polarizations, dtype=None):
+    """
+    Shrink number of polarizations to nr_polarizations
+    Optionally change the data type
+
+    :param data: numpy array containing visibility data. It should have
+     dimensions (frequency, baselines, 4)
+    :param nr_polarizations: number of polarizations desired in the output.
+        Can be 1, 2 or 4
+    :param dtype: optional data type
+    :return: numpy array containing the input visibility data, where the
+            polarizations dimension is nr_polarizations (data is copied)
+    """
+
+    if dtype is None:
+        dtype = data.dtype
+
+    new_shape = data.shape[:-1] + (nr_polarizations,)
+    data_out = numpy.zeros(new_shape, dtype=dtype)
+
+    if nr_polarizations == 4:
+        data_out[:] = data
+
+    elif nr_polarizations == 2:
+        # If there are two polarizations, they are XX and YY
+        data_out[:, :, 0] = data[:, :, 0]
+        data_out[:, :, 1] = data[:, :, 3]
+
+    else:
+        # If there is a single polarization, it is the average of XX and YY
+        data_out[:, :, 0] = (data[:, :, 0] + data[:, :, 3]) / 2
     return data_out
