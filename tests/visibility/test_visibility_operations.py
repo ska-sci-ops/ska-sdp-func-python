@@ -18,6 +18,7 @@ from ska_sdp_func_python.visibility.operations import (
     convert_visibility_stokesI_to_polframe,
     convert_visibility_to_stokes,
     convert_visibility_to_stokesI,
+    copy_data_and_shrink_polarizations,
     divide_visibility,
     expand_polarizations,
     integrate_visibility_by_channel,
@@ -175,3 +176,19 @@ def test_expand_polarizations():
         data_in = numpy.zeros([n_channels, n_baselines, n_polarizations])
         data_expanded = expand_polarizations(data_in)
         assert data_expanded.shape == (n_channels, n_baselines, 4)
+
+
+def test_shrink_polarizations():
+    """
+    Check that visibilities are correclty shrunk from 4 polarizations to
+    [1, 2, 4] polarizations
+    """
+    n_channels = 4
+    n_baselines = 10
+
+    for n_polarizations in numpy.array([1, 2, 4]):
+        data_in = numpy.zeros([n_channels, n_baselines, 4])
+        data_shrunk = copy_data_and_shrink_polarizations(
+            data_in, n_polarizations
+        )
+        assert data_shrunk.shape == (n_channels, n_baselines, n_polarizations)
