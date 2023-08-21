@@ -26,7 +26,7 @@ def solve_ionosphere(
     modelvis: Visibility,
     xyz,
     cluster_id=None,
-    cluster_0_degree=None,
+    zernike_limit=None,
     block_diagonal=False,
     niter=15,
     tol=1e-6,
@@ -49,8 +49,8 @@ def solve_ionosphere(
         local horizontal frame
     :param cluster_id: [n_antenna] array containing the cluster ID of each
         antenna. Defaults to a single cluster comprising all stations
-    :param cluster_0_degree: max Zernike degree for the first cluster.
-        Default is to leave unset when calling zern_array().
+    :param zernike_limit: [n_cluster] list of Zernike index limits.
+        Default is to leave unset when calling set_coeffs_and_params().
     :param block_diagonal: If true, each cluster will be solver for separately
         during each iteration. This is equivalent to setting all elements of
         the normal matrix to zero except for the block diagonal elements for
@@ -79,18 +79,22 @@ def solve_ionosphere(
         raise ValueError(f"cluster_id has wrong size {len(cluster_id)}")
 
     # Calculate coefficients for each cluster and initialise parameter values
-    [param, coeff] = set_coeffs_and_params(xyz, cluster_id, cluster_0_degree)
+    [param, coeff] = set_coeffs_and_params(xyz, cluster_id, zernike_limit)
 
     n_param = get_param_count(param)[0]
 
-    log.info(
-        "Setting up iono solver for %d stations in %d cluster",
-        len(gain_table.antenna),
-        n_cluster,
-    )
     if n_cluster == 1:
-        log.info("There are %d total parameters in a single cluster", n_param)
+        log.info(
+            "Setting up iono solver for %d stations in a single cluster",
+            len(gain_table.antenna),
+        )
+        log.info("There are %d total parameters in the cluster", n_param)
     else:
+        log.info(
+            "Setting up iono solver for %d stations in %d clusters",
+            len(gain_table.antenna),
+            n_cluster,
+        )
         log.info(
             "There are %d total parameters: %d in c[0] + %d x c[1:%d]",
             n_param,
@@ -204,7 +208,7 @@ def get_param_count(param):
 def set_coeffs_and_params(
     xyz,
     cluster_id,
-    cluster_0_degree=None,
+    zernike_limit=None,
 ):
     """
     Calculate coefficients (a basis function value vector for each cluster) and
@@ -213,8 +217,8 @@ def set_coeffs_and_params(
     :param xyz: [n_antenna,3] array containing the antenna locations in the
         local horizontal frame
     :param cluster_id: [n_antenna] array of antenna cluster indices
-    :param cluster_0_degree: max Zernike degree for the first cluster.
-        Default n+|m| <= 6.
+    :param zernike_limit: [n_cluster] list of Zernike index limits:
+        n + |m| <= zernike_limit[cluster_id]. Default: [6,2,2,...,2]
     :return param: [n_cluster] list of solution vectors
     :return coeff: [n_station] list of basis-func value vectors
         Stored as a numpy dtype=object array of variable-length coeff vectors
@@ -227,40 +231,59 @@ def set_coeffs_and_params(
     coeff = [None] * n_station
     param = [None] * n_cluster
 
-    # Coefficients and parameter values
-    # treat cluster zero differently; it is assumed to be a larger central core
-    cid = 0
+    # Check list of polynomial degree limits
+    if zernike_limit is None:
+        # set a TEC offset and ramp for most clusters
+        zernike_limit = [2] * n_cluster
+        # but assume cluster zero contains the large central core
+        zernike_limit[0] = 6
+    elif len(zernike_limit) != n_cluster:
+        log.error("Incorrect length for zernike_limit parmater")
+        return numpy.empty(0), numpy.empty(0)
 
-    if cluster_0_degree is None:
-        cluster_0_degree = 6
+    for cid in range(0, n_cluster):
 
-    # Get Zernike parameters for the stations in this cluster
-    zern_params = zern_array(
-        cluster_0_degree, xyz[cid2stn[cid], 0], xyz[cid2stn[cid], 1]
-    )
-
-    for idx, stn in enumerate(cid2stn[cid]):
-        coeff[stn] = zern_params[idx]
-
-    if len(cid2stn[cid]) > 0:
-        param[cid] = numpy.zeros(len(coeff[cid2stn[cid][0]]))
-
-    # now do the rest of the clusters
-    for cid in range(1, n_cluster):
-        # Remove the average position of the cluster
-        xave = numpy.mean(xyz[cid2stn[cid], 0])
-        yave = numpy.mean(xyz[cid2stn[cid], 1])
-        for stn in cid2stn[cid]:
-            # coeff[stn] = numpy.array([1, x[stn], y[stn]])
-            coeff[stn] = numpy.array(
-                [
-                    1,
-                    xyz[stn, 0] - xave,
-                    xyz[stn, 1] - yave,
-                ]
-            )
+        # Generate the required Zernike polynomials for each station
+        zern_params = zern_array(
+            zernike_limit[cid], xyz[cid2stn[cid], 0], xyz[cid2stn[cid], 1]
+        )
+ 
+        # Set coefficients
+        for idx, stn in enumerate(cid2stn[cid]):
+            coeff[stn] = zern_params[idx]
+ 
+        # Initialise parameters
         if len(cid2stn[cid]) > 0:
             param[cid] = numpy.zeros(len(coeff[cid2stn[cid][0]]))
+
+    # # Get Zernike parameters for stations in the larger central cluster
+    # cid = 0
+    # zern_params = zern_array(
+    #     zernike_limit[cid], xyz[cid2stn[cid], 0], xyz[cid2stn[cid], 1]
+    # )
+
+    # for idx, stn in enumerate(cid2stn[cid]):
+    #     coeff[stn] = zern_params[idx]
+
+    # if len(cid2stn[cid]) > 0:
+    #     param[cid] = numpy.zeros(len(coeff[cid2stn[cid][0]]))
+
+    # # now do the rest of the clusters
+    # for cid in range(1, n_cluster):
+    #     # Remove the average position of the cluster
+    #     xave = numpy.mean(xyz[cid2stn[cid], 0])
+    #     yave = numpy.mean(xyz[cid2stn[cid], 1])
+    #     for stn in cid2stn[cid]:
+    #         # coeff[stn] = numpy.array([1, x[stn], y[stn]])
+    #         coeff[stn] = numpy.array(
+    #             [
+    #                 1,
+    #                 xyz[stn, 0] - xave,
+    #                 xyz[stn, 1] - yave,
+    #             ]
+    #         )
+    #     if len(cid2stn[cid]) > 0:
+    #         param[cid] = numpy.zeros(len(coeff[cid2stn[cid][0]]))
 
     return param, numpy.array(coeff, dtype=object)
 
