@@ -170,7 +170,7 @@ def image_scatter_channels(im: Image, subimages=None) -> List[Image]:
     """Scatter an Image into a list of subimages using the channels.
 
     :param im: Image
-    :param subimages: Number of channels
+    :param subimages: Number of channels (default is None)
     :return: list of subimages
 
     See also
@@ -178,6 +178,8 @@ def image_scatter_channels(im: Image, subimages=None) -> List[Image]:
     """
     if im is None:
         return None
+    if subimages is None:
+        subimages = len(im["frequency"].data)
 
     return [
         r[1]
