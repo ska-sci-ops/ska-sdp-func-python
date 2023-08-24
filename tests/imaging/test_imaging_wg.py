@@ -32,7 +32,6 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 
 @pytest.fixture(scope="module", name="result_wg")
 def wg_fixture():
-
     persist = os.getenv("FUNC_PYTHON_PERSIST", False)
     verbosity = 0
     npixel = 256
@@ -73,7 +72,6 @@ def wg_fixture():
 
 
 def test_predict_wg(result_wg):
-
     vis = result_wg["visibility"]
     model = result_wg["model"]
     verbosity = result_wg["verbosity"]

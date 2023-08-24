@@ -1138,7 +1138,6 @@ def find_optimum_scale_zero_moment(smpsol, sensitivity, windowstack):
     optimum = 0.0
 
     for scale in range(nscales):
-
         if windowstack is not None:
             resid = smpsol[scale, 0, :, :] * windowstack[scale, :, :]
         else:

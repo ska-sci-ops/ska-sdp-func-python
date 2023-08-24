@@ -142,7 +142,6 @@ def test_create_parset_from_context(visibility):
     assert len(parset_list) == len(calibration_context_list)
 
     for i in numpy.arange(len(calibration_context_list)):
-
         assert parset_list[i].get_string("gaincal.nchan") == "0"
         if calibration_context_list[i] == "T":
             assert (
