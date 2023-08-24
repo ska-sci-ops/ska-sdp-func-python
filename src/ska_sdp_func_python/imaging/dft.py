@@ -121,7 +121,9 @@ def extract_direction_and_flux(sc, vis):
 def dft_kernel(
     direction_cosines, vfluxes, uvw_lambda, dft_compute_kernel=None
 ):
-    """CPU computational kernel for DFT, choice dependent on dft_compute_kernel.
+    """
+    CPU computational kernel for DFT,
+    choice dependent on dft_compute_kernel.
 
     :param direction_cosines: Direction cosines [ncomp, 3]
     :param vfluxes: Fluxes [ncomp, nchan, npol]
