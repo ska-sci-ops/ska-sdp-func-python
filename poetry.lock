@@ -1402,10 +1402,11 @@ viz = ["matplotlib", "nc-time-axis", "seaborn"]
 dp3 = ["dp3"]
 fft-support = ["pyfftw"]
 gpu = ["cupy"]
+h5py = ["h5py"]
 radler = ["radler"]
 ska-sdp-func = ["ska-sdp-func"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <3.13"
-content-hash = "9cf04f703dc6d1b5fe9e2e8f6341132f117fe1fb3496b29018ce35f60f76a7de"
+content-hash = "62978bf9cfb10e3ff2c13797051197d6903669b6b5e8196a9323e2df7e73b9ee"
