@@ -194,9 +194,10 @@ can also be used::
 
 The convolutional gridding functions are to be found in the grid_data module
 
+.. _dp3_usage:
 
 DP3
--------
+---
 In order to use DP3, the optional dp3 dependency must be installed. You can obtain it with::
 
     pip install dp3
