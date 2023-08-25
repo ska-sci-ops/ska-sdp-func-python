@@ -64,7 +64,6 @@ def apply_gaintable(
         )
         vis_rows = row_numbers[vis_rows]
         if len(vis_rows) > 0:
-
             # Lookup the gain for this set of visibilities
             gain = gt["gain"].data[row]
             cgain = numpy.conjugate(gt["gain"].data[row])

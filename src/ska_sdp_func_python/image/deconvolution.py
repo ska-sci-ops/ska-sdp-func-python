@@ -164,8 +164,7 @@ def radler_deconvolve_list(
     dirty_list: List[Image],
     psf_list: List[Image],
     **kwargs,
-) -> (List[Image]):
-
+) -> List[Image]:
     """
     Clean using the Radler module, using various algorithms.
 
@@ -749,7 +748,6 @@ def mmclean_kernel_list(
     comp_array = numpy.zeros(dirty_taylor["pixels"].data.shape)
     residual_array = numpy.zeros(dirty_taylor["pixels"].data.shape)
     for pol in range(dirty_taylor["pixels"].data.shape[1]):
-
         sens = (
             sensitivity_taylor["pixels"].data[:, pol, :, :]
             if sensitivity_taylor is not None
@@ -970,7 +968,6 @@ def restore_list(
     restored_list = []
 
     for channel, model in enumerate(model_list):
-
         if psf_list is not None:
             psf = psf_list[channel]
         else:

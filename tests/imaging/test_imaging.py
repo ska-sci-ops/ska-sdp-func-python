@@ -120,7 +120,6 @@ def _predict_base(
     gcfcf=None,
     **kwargs,
 ):
-
     if gcfcf is not None:
         context = "awprojection"
 
@@ -168,7 +167,6 @@ def _invert_base(
     gcfcf=None,
     **kwargs,
 ):
-
     if gcfcf is not None:
         context = "awprojection"
 

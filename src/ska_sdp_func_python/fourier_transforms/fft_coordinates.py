@@ -157,7 +157,9 @@ def grdsf(nu):
 
 
 def w_beam(npixel, field_of_view, w, cx=None, cy=None, remove_shift=False):
-    """W beam, the fresnel diffraction pattern arising from non-coplanar baselines.
+    """
+    W beam, the fresnel diffraction pattern
+    arising from non-coplanar baselines.
 
     :param npixel: Size of the grid in pixels
     :param field_of_view: Field of view

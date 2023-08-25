@@ -11,6 +11,7 @@ pytest.importorskip(
     modname="ska_sdp_func", reason="ska-sdp-func is an optional dependency"
 )
 from ska_sdp_func_python.sky_model.skymodel_imaging import (
+    dp3_predict,
     skymodel_calibrate_invert,
     skymodel_predict_calibrate,
 )
@@ -201,4 +202,28 @@ def test_predict_no_image(visibility_deconv, low_test_sky_model_from_gleam):
         qa.data["maxabs"],
         20.434662306068372,
         err_msg=str(qa),
+    )
+
+
+def test_dp3_predict(visibility_deconv, low_test_sky_model_from_gleam):
+    """Test DP3 predict"""
+    sky_model = low_test_sky_model_from_gleam.copy()
+
+    skymodel_vis = dp3_predict(
+        visibility_deconv,
+        sky_model,
+    )
+    assert numpy.max(numpy.abs(skymodel_vis.vis)) > 0.0
+
+
+def test_dp3_predict_kwargs(visibility_deconv, low_test_sky_model_from_gleam):
+    """Test DP3 predict with extra arguments"""
+    sky_model = low_test_sky_model_from_gleam.copy()
+
+    dp3_predict(visibility_deconv, sky_model, correctfreqsmearing="True")
+
+    with pytest.raises(ValueError) as e:
+        dp3_predict(visibility_deconv, sky_model, dummy_setting="skymodel")
+    assert "DP3 predict does not support the argument: dummy_setting" in str(
+        e.value
     )
