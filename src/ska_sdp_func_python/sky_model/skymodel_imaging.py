@@ -243,11 +243,11 @@ def dp3_predict(bvis, skymodel, **kwargs):
     :param skymodel: skymodel containing the sources to use for prediction
     :type skymodel: SkyModel
     :param kwargs: extra keyword arguments containing only DP3 predict
-    parameters. See https://dp3.readthedocs.io/en/latest/steps/Predict.html
-    for more details.
+        parameters. See https://dp3.readthedocs.io/en/latest/steps/Predict.html
+        for more details.
     :type kwargs: string
     :return: predicted visibilities
-    :type return: Visibility
+    :rtype: Visibility
     """
 
     import dp3  # noqa: E501 # pylint:disable=no-name-in-module,import-error,import-outside-toplevel
