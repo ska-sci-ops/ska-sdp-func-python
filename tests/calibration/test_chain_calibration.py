@@ -97,7 +97,6 @@ def test_calibrate_chain(context, phase_only, first_selfcal_value):
         gaintable_var = context
 
     elif context == "TG":
-
         controls["T"]["first_selfcal"] = first_selfcal_value
         controls["T"]["timeslice"] = 0.0
         controls["T"]["phase_only"] = True

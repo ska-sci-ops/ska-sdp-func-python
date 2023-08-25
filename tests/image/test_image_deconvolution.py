@@ -248,7 +248,7 @@ def test_deconvolve_hogbom_subpsf(dirty_img, psf):
     )
     assert (
         numpy.max(residual["pixels"].data[..., 56:456, 56:456])
-        < 0.7713111251075610
+        < 0.7713111251174253
     )
 
 

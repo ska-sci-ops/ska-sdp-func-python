@@ -82,7 +82,6 @@ def test_raster(input_params):
         ), "Original is empty"
 
         for nraster in [1]:
-
             for overlap in [0, 2, 4, 8, 16]:
                 try:
                     model = create_image(

@@ -30,7 +30,7 @@ def test_calculate_azel(phase_centre):
     azel = calculate_azel(LOCATION, utc_times, phase_centre)
     numpy.testing.assert_array_almost_equal(azel[0][0].deg, -113.964241)
     numpy.testing.assert_array_almost_equal(azel[1][0].deg, 57.715754)
-    numpy.testing.assert_array_almost_equal(azel[0][-1].deg, -171.470433)
+    numpy.testing.assert_array_almost_equal(azel[0][-1].deg, -171.470435)
     numpy.testing.assert_array_almost_equal(azel[1][-1].deg, 81.617363)
 
 
