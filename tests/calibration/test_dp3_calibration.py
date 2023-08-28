@@ -17,6 +17,7 @@ from ska_sdp_datamodels.sky_model.sky_model import SkyComponent, SkyModel
 from ska_sdp_func_python.calibration.dp3_calibration import (
     create_parset_from_context,
     dp3_gaincal,
+    dp3_gaincal_with_modeldata,
 )
 from ska_sdp_func_python.sky_model.skymodel_imaging import (
     skymodel_predict_calibrate,
@@ -46,6 +47,32 @@ def skycomponent():
 
     compabsdirection = SkyCoord(
         ra=+181.0 * u.deg, dec=-35.0 * u.deg, frame="icrs", equinox="J2000"
+    )
+    comp = SkyComponent(
+        direction=compabsdirection,
+        frequency=frequency,
+        flux=flux,
+        polarisation_frame=PolarisationFrame(sky_pol_frame),
+    )
+
+    return comp
+
+
+@pytest.fixture(name="create_skycomponent_in_phase_center")
+def skycomponent_phase_center():
+    """Create a skycomponent in the phase center to use for testing"""
+    sky_pol_frame = "stokesIQUV"
+    frequency = numpy.array([1.0e8])
+
+    f = [1.0, 0.0, 0.0, 0.0]
+
+    flux = numpy.outer(
+        numpy.array([numpy.power(freq / 1e8, -0.7) for freq in frequency]),
+        f,
+    )
+
+    compabsdirection = SkyCoord(
+        ra=+180.0 * u.deg, dec=-35.0 * u.deg, frame="icrs", equinox="J2000"
     )
     comp = SkyComponent(
         direction=compabsdirection,
@@ -108,8 +135,8 @@ def test_create_parset_from_context(visibility):
         visibility,
         calibration_context_list,
         global_solution,
-        "test.skymodel",
         "solutions.h5",
+        skymodel_filename="test.skymodel",
     )
 
     assert len(parset_list) == len(calibration_context_list)
@@ -148,3 +175,48 @@ def test_create_parset_from_context(visibility):
                 ).astype("int"),
             )
             assert parset_list[i].get_string("gaincal.solint") == str(nbins)
+
+
+def test_dp3_gaincal_with_modeldata(
+    create_skycomponent_in_phase_center, visibility
+):
+    """
+    Test that DP3 calibration runs without throwing exception when model data
+    is provided in a separate visibility object and provides the expected
+    result.
+    Only run this test if DP3 is available.
+    """
+
+    vis = visibility.copy(deep=True)
+    skymodel_vis = skymodel_predict_calibrate(
+        vis,
+        SkyModel(components=create_skycomponent_in_phase_center),
+        context="ng",
+    )
+
+    corruption_factor = 16
+    vis.vis.data = corruption_factor * skymodel_vis.vis.data
+
+    calibrated_vis = dp3_gaincal_with_modeldata(
+        vis,
+        ["B"],
+        True,
+        skymodel_vis,
+        "model_data",
+        solutions_filename="solutions.h5",
+    )
+
+    h5_solutions = h5py.File("solutions.h5", "r")
+    amplitude_solution = h5_solutions["sol000/amplitude000/val"][:]
+
+    assert numpy.allclose(
+        amplitude_solution,
+        numpy.sqrt(corruption_factor),
+        atol=1e-08,
+    )
+
+    assert numpy.allclose(
+        calibrated_vis.vis.data,
+        skymodel_vis.vis.data,
+        atol=1e-08,
+    )
