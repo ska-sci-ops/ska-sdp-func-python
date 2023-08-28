@@ -247,11 +247,11 @@ def set_coeffs_and_params(
         zern_params = zern_array(
             zernike_limit[cid], xyz[cid2stn[cid], 0], xyz[cid2stn[cid], 1]
         )
- 
+
         # Set coefficients
         for idx, stn in enumerate(cid2stn[cid]):
             coeff[stn] = zern_params[idx]
- 
+
         # Initialise parameters
         if len(cid2stn[cid]) > 0:
             param[cid] = numpy.zeros(len(coeff[cid2stn[cid][0]]))
