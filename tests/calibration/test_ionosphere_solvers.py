@@ -32,9 +32,9 @@ from ska_sdp_func_python.calibration.ionosphere_utils import (
 )
 from ska_sdp_func_python.imaging.dft import dft_skycomponent_visibility
 
-#pytest.importorskip(
-#    modname="ska_sdp_func", reason="ska-sdp-func is an optional dependency"
-#)
+pytest.importorskip(
+    modname="ska_sdp_func", reason="ska-sdp-func is an optional dependency"
+)
 
 
 @pytest.fixture(scope="module", name="input_params")
