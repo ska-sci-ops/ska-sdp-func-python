@@ -4,9 +4,11 @@ Functions to invert and predict Visibility from SkyModels.
 __all__ = [
     "skymodel_calibrate_invert",
     "skymodel_predict_calibrate",
+    "dp3_predict",
 ]
 
 import numpy
+from ska_sdp_datamodels.sky_model.sky_functions import export_skymodel_to_text
 
 from ska_sdp_func_python.calibration import apply_gaintable
 from ska_sdp_func_python.imaging.base import normalise_sumwt
@@ -74,7 +76,7 @@ def skymodel_predict_calibrate(
     docal=False,
     inverse=True,
     get_pb=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Predict visibility for a SkyModel, optionally applying calibration.
@@ -105,7 +107,6 @@ def skymodel_predict_calibrate(
     if get_pb is not None:
         # TODO: Expand control of the grouping, coord and step
         for _, vis_slice in v.groupby("time", squeeze=False):
-
             pb = get_pb(vis_slice, skymodel.image)
 
             # First do the DFT for the components
@@ -159,7 +160,7 @@ def skymodel_calibrate_invert(
     get_pb=None,
     normalise=True,
     flat_sky=False,
-    **kwargs
+    **kwargs,
 ):
     """Inverse Fourier sum of Visibility to Image and components.
 
@@ -192,7 +193,6 @@ def skymodel_calibrate_invert(
     if get_pb is not None:
         # TODO: Expand control of the grouping, coord and step
         for _, vis_slice in bvis_cal.groupby("time", squeeze=False):
-
             pb = get_pb(vis_slice, skymodel.image)
 
             # Just do a straightforward invert for just this vis
@@ -204,7 +204,7 @@ def skymodel_calibrate_invert(
                 skymodel.image,
                 context=context,
                 normalise=False,
-                **kwargs
+                **kwargs,
             )
             flat = numpy.ones_like(result[0]["pixels"].data)
             if skymodel.mask is not None:
@@ -233,3 +233,56 @@ def skymodel_calibrate_invert(
         result[0]["pixels"].data *= skymodel.mask["pixels"].data
 
     return result
+
+
+def dp3_predict(bvis, skymodel, **kwargs):
+    """Wrapper to run the DP3 predict step based on a given SkyModel. .
+
+    :param bvis: input Visibility object.
+    :type bvis: Visibility
+    :param skymodel: skymodel containing the sources to use for prediction
+    :type skymodel: SkyModel
+    :param kwargs: extra keyword arguments containing only DP3 predict
+        parameters. See https://dp3.readthedocs.io/en/latest/steps/Predict.html
+        for more details.
+    :type kwargs: string
+    :return: predicted visibilities
+    :rtype: Visibility
+    """
+
+    import dp3  # noqa: E501 # pylint:disable=no-name-in-module,import-error,import-outside-toplevel
+
+    from ska_sdp_func_python.util.dp3_utils import process_visibilities
+
+    predicted_vis = bvis.copy(deep=True)
+    export_skymodel_to_text(skymodel, "dp3_predict.skymodel")
+    parset = dp3.parameterset.ParameterSet()
+    parset.add("predict.sourcedb", "test.skymodel")
+
+    possible_extra_arguments = [
+        "beammode",
+        "beamproximitylimit",
+        "correctfreqsmearing",
+        "correcttimesmearing",
+        "elementmodel",
+        "onebeamperpatch",
+        "operation",
+        "outputmodelname",
+        "parallelbaselines",
+        "sources",
+        "usebeammodel",
+        "usechannelfreq",
+    ]
+    for key, value in kwargs.items():
+        if key not in possible_extra_arguments:
+            raise ValueError(
+                f"DP3 predict does not support the argument: {key}"
+            )
+        parset.add("predict." + key, value)
+
+    predict_step = dp3.make_step(
+        "predict", parset, "predict.", dp3.MsType.regular
+    )
+
+    process_visibilities(predict_step, predicted_vis)
+    return predicted_vis

@@ -161,7 +161,7 @@ def interpolate_skycomponents_frequency(
     Each SkyComponent in a list is interpolated in
     frequency using a Taylor series expansion.
 
-    :param sc_list: List of SkyComponents to be interpolated (in frequency_
+    :param sc_list: List of SkyComponents to be interpolated (in frequency)
     :param nmoment: Number of moments to be fitted
     :param reference_frequency: Reference frequency
                 (default None uses central frequency)

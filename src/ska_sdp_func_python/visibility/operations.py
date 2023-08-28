@@ -144,7 +144,9 @@ def remove_continuum_visibility(
 
 
 def divide_visibility(vis: Visibility, modelvis: Visibility):
-    """Divide visibility by model forming visibility for equivalent point source.
+    """
+    Divide visibility by model forming
+    visibility for equivalent point source.
 
     This is a useful intermediate product for calibration.
     Variation of the visibility in time and frequency due
@@ -239,7 +241,9 @@ def integrate_visibility_by_channel(vis: Visibility) -> Visibility:
 def average_visibility_by_channel(
     vis: Visibility, channel_average=None
 ) -> List[Visibility]:
-    """Average visibility by groups of channels, returning list of new visibility.
+    """
+    Average visibility by groups of channels,
+    returning list of new visibility.
 
     :param vis: Visibility
     :param channel_average: Number of channels to average

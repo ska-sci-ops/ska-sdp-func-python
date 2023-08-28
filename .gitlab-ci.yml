@@ -35,3 +35,6 @@ python-test:
     - poetry config virtualenvs.in-project true
     - poetry config virtualenvs.create $POETRY_CONFIG_VIRTUALENVS_CREATE
     - time poetry install --extras "fft_support radler dp3 h5py ska-sdp-func"
+
+python-gemnasium-scan:
+  when: manual

@@ -118,7 +118,6 @@ def process_visibilities(
 
     # Extract the results from the QueueOutput step, if desired.
     if save_out_vis:
-
         time_index = 0
 
         while not queue_step.queue.empty():

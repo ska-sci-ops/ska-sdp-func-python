@@ -194,4 +194,33 @@ can also be used::
 
 The convolutional gridding functions are to be found in the grid_data module
 
+.. _dp3_usage:
 
+DP3
+---
+In order to use DP3, the optional dp3 dependency must be installed. You can obtain it with::
+
+    pip install dp3
+
+The functions in the module :py:func:`ska_sdp_func_python.util.dp3_utils` allow 
+usage of DP3 steps. The user should define the parset for the specific step 
+with the desired settings, and use the parset to create the step using the 
+function :py:func:`dp3.make_step`. ::
+
+    import dp3
+    parset = dp3.parameterset.ParameterSet()
+    parset.add("predict.sourcedb", "test.skymodel")
+    predict_step = dp3.make_step("predict", parset, "predict.", dp3.MsType.regular)
+
+Once the step object is created, the visibilities can be passed to it and 
+processed with the :py:func:`process_visibilities` function ::
+
+    from ska_sdp_func_python.util.dp3_utils import process_visibilities
+    predicted_vis = process_visibilities(predict_step, input_visibilities)
+
+For some steps, it is possible to call the function directly. This is the case 
+for `Predict <https://dp3.readthedocs.io/en/latest/steps/Predict.html>`_  and 
+`Gaincal <https://dp3.readthedocs.io/en/latest/steps/GainCal.html>`_ :: 
+
+    from ska_sdp_func_python.calibration.dp3_calibration import dp3_gaincal
+    calibrated_vis = dp3_gaincal(skymodel_vis, calibration_context, global_solution, solutions_filename)

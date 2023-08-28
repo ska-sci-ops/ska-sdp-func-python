@@ -409,7 +409,6 @@ def apply_beam_to_skycomponent(
     newsc = []
     total_flux = numpy.zeros_like(sc[0].flux)
     for icomp, comp in enumerate(sc):
-
         assert comp.shape == "Point", f"Cannot handle shape {comp.shape}"
 
         pixloc = (pixlocs[0][icomp], pixlocs[1][icomp])
@@ -503,7 +502,6 @@ def apply_voltage_pattern_to_skycomponent(
     total_flux = numpy.zeros([nchan, npol], dtype="complex")
 
     for icomp, comp in enumerate(sc):
-
         assert comp.shape == "Point", f"Cannot handle shape {comp.shape}"
 
         # Convert to linear (xx, xy, yx, yy) or circular (rr, rl, lr, ll)
@@ -699,7 +697,6 @@ def restore_skycomponent(
     beam_pixels = convert_clean_beam_to_pixels(im, clean_beam)
 
     for icomp, comp in enumerate(sc):
-
         if comp.shape != "Point":
             raise ValueError(
                 f"restore_skycomponent: Cannot handle shape {comp.shape}"
