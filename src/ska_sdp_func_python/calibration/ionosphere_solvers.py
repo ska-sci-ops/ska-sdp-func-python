@@ -242,7 +242,6 @@ def set_coeffs_and_params(
         return numpy.empty(0), numpy.empty(0)
 
     for cid in range(0, n_cluster):
-
         # Generate the required Zernike polynomials for each station
         zern_params = zern_array(
             zernike_limit[cid], xyz[cid2stn[cid], 0], xyz[cid2stn[cid], 1]
