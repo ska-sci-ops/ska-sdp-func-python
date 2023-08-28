@@ -205,7 +205,7 @@ def test_set_coeffs_and_params(input_params):
     [param, coeff] = set_coeffs_and_params(low_config.xyz.data, cluster_id)
     # check that there is a set of parameters per cluster
     n_param_0 = 16
-    n_param_n = 3
+    n_param_n = 4
     assert len(param) == n_cluster
     assert len(param[0]) == n_param_0
     for cid in range(1, n_cluster):
