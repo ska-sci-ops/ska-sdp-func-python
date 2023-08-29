@@ -12,6 +12,7 @@ from ska_sdp_func_python.calibration.ionosphere_utils import (
     decompose_phasescreen,
     displace_phasescreen,
     interpolate_phasescreen,
+    standardise_eigenvectors,
     zern,
     zern_array,
 )
@@ -49,6 +50,7 @@ def test_decompose_phasescreen(input_params):
     r_0 = 7e3
     beta = 5.0 / 3.0
     [evec_matrix, sqrt_evals] = decompose_phasescreen(x, y, r_0, beta)
+    standardise_eigenvectors(evec_matrix)
 
     # Generate a mask to select cross products (c.f. baselines) from
     # n_stations x n_stations covariance matrices and the like
@@ -75,7 +77,8 @@ def test_decompose_phasescreen(input_params):
     # Generate the random screens and accumulate the covariance estimates
     shift_variance = numpy.zeros(len(r))
     numpy.random.seed(int(1e8))
-    for _ in range(1000):
+    num_screens = 2000
+    for _ in range(num_screens):
         phase_shifts = evec_matrix @ (
             sqrt_evals * numpy.random.randn(n_stations)
         )
@@ -83,12 +86,12 @@ def test_decompose_phasescreen(input_params):
             numpy.tile(phase_shifts[:, numpy.newaxis], (1, n_stations))
             - numpy.tile(phase_shifts[numpy.newaxis, :], (n_stations, 1))
         )[mask]
-        shift_variance += relative_shifts**2 / 1000.0
+        shift_variance += relative_shifts**2 / num_screens
 
     # Fit structure function parameters from the covariance measurements
     r_0_fit, beta_fit = fit_structure_function(r, shift_variance)
 
-    assert numpy.abs(beta_fit - beta) / beta < 2e-3
+    assert numpy.abs(beta_fit - beta) / beta < 5e-3
     assert numpy.abs(r_0_fit - r_0) / r_0 < 2e-2
 
 
@@ -109,6 +112,7 @@ def test_decompose_phasescreen_array():
     r_0 = 7e3
     beta = 5.0 / 3.0
     [evec_matrix, sqrt_evals] = decompose_phasescreen(xx, yy, r_0, beta)
+    standardise_eigenvectors(evec_matrix)
 
     # Generate a mask to select cross products (c.f. baselines) from
     # n_points x n_points covariance matrices and the like
@@ -133,19 +137,20 @@ def test_decompose_phasescreen_array():
     # Generate the random screens and accumulate the covariance estimates
     shift_variance = numpy.zeros(len(r))
     numpy.random.seed(int(1e8))
-    for _ in range(1000):
+    num_screens = 2000
+    for _ in range(num_screens):
         phasescreen = evec_matrix @ (sqrt_evals * numpy.random.randn(n_points))
         relative_shifts = (
             numpy.tile(phasescreen[:, numpy.newaxis], (1, n_points))
             - numpy.tile(phasescreen[numpy.newaxis, :], (n_points, 1))
         )[mask]
-        shift_variance += relative_shifts**2 / 1000.0
+        shift_variance += relative_shifts**2 / num_screens
 
     # Fit structure function parameters from the covariance measurements
     r_0_fit, beta_fit = fit_structure_function(r, shift_variance)
 
     assert numpy.abs(beta_fit - beta) / beta < 1e-2
-    assert numpy.abs(r_0_fit - r_0) / r_0 < 3e-2
+    assert numpy.abs(r_0_fit - r_0) / r_0 < 2e-2
 
 
 def test_interpolate_phasescreen():

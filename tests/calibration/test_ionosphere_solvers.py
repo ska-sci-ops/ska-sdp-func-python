@@ -29,6 +29,7 @@ from ska_sdp_func_python.calibration.ionosphere_solvers import (
 )
 from ska_sdp_func_python.calibration.ionosphere_utils import (
     decompose_phasescreen,
+    standardise_eigenvectors,
 )
 from ska_sdp_func_python.imaging.dft import dft_skycomponent_visibility
 
@@ -498,6 +499,7 @@ def generate_phase_shifts(low_config, r_0=7e3, beta=5.0 / 3.0):
     y_stn = low_config.xyz.data[:, 1]
 
     [evec_matrix, sqrt_evals] = decompose_phasescreen(x_stn, y_stn, r_0, beta)
+    standardise_eigenvectors(evec_matrix)
 
     numpy.random.seed(int(1e8))
     return evec_matrix @ (sqrt_evals * numpy.random.randn(n_stations))

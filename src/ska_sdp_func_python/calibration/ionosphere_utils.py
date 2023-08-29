@@ -67,6 +67,23 @@ def decompose_phasescreen(x, y, r_0, beta=5.0 / 3.0):
     return U, numpy.sqrt(S)
 
 
+def standardise_eigenvectors(evec):
+    """
+    Different eigenvector solvers genearte vectors with arbitrary scaling by
+    +1 or -1. And for numpy, this has been seen to change from one version to
+    the next. While the scaling is arbitrary and won't affect the desired
+    statistics, it will affect the resulting phase screens. This routine
+    standardises the scaling to avoid randomness during testing.
+
+    :param evec: eigenvector matrix to standardise
+    """
+
+    # scale to make the first element of each vector positive
+    # for k in range(evec.shape[1]):
+    #     evec[:,k] *= numpy.sign(evec[0,k])
+    evec *= numpy.sign(evec[0, :])
+
+
 def interpolate_phasescreen(input_screen):
     """
     Bilinear interpolation of a two dimensinal phase screen. This could, for
