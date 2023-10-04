@@ -1,6 +1,6 @@
 # Changelog
 
-main
+0.3.0
 ----
 * Add the function dp3_predict which wraps DP3 predict steps ([MR39](https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/merge_requests/39))
 * Add functions process_visibilities and create_dpinfo to ease the use of DP3 steps ([MR38](https://gitlab.com/ska-telescope/sdp/ska-sdp-func-python/-/merge_requests/38))
