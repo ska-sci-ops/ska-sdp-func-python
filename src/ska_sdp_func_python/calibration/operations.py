@@ -69,12 +69,16 @@ def apply_gaintable(
             cgain = numpy.conjugate(gt["gain"].data[row])
 
             nant = gain.shape[0]
+            # Get the number of channels from Gain
             nchan = gain.shape[1]
             baselines = vis.baselines.data
+            # Get the number of channels from Visibility-> vchan
             vchan = vis["vis"].data.shape[2]
 
             gchan_id = numpy.arange(nchan)
+            # Counting repetitions
             repeat_times = numpy.ceil(vchan / nchan).astype(int)
+            # Repeat elements
             vchan_to_nchan = numpy.repeat(gchan_id, repeat_times)[:vchan]
 
             # Try to ignore visibility flags in application of gains.
