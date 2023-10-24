@@ -69,8 +69,17 @@ def apply_gaintable(
             cgain = numpy.conjugate(gt["gain"].data[row])
 
             nant = gain.shape[0]
+            # Get the number of channels from Gain
             nchan = gain.shape[1]
             baselines = vis.baselines.data
+            # Get the number of channels from Visibility-> vchan
+            vchan = vis["vis"].data.shape[2]
+
+            gchan_id = numpy.arange(nchan)
+            # Counting repetitions
+            repeat_times = numpy.ceil(vchan / nchan).astype(int)
+            # Repeat elements
+            vchan_to_nchan = numpy.repeat(gchan_id, repeat_times)[:vchan]
 
             # Try to ignore visibility flags in application of gains.
             # Should have no impact
@@ -109,11 +118,11 @@ def apply_gaintable(
 
                 for sub_vis_row in range(original.shape[0]):
                     for ibaseline, (a1, a2) in enumerate(baselines):
-                        for chan in range(nchan):
+                        for chan in range(vchan):
                             if numpy.abs(smueller1[chan, a1, a2]) > 0.0:
                                 applied[sub_vis_row, ibaseline, chan, 0] = (
                                     original[sub_vis_row, ibaseline, chan, 0]
-                                    * smueller1[chan, a1, a2]
+                                    * smueller1[vchan_to_nchan[chan], a1, a2]
                                 )
                             else:
                                 applied[sub_vis_row, ibaseline, chan, 0] = 0.0
@@ -122,18 +131,22 @@ def apply_gaintable(
                                 ] = 0.0
 
             elif vis.visibility_acc.npol == 2:
-                has_inverse_ant = numpy.zeros([nant, nchan], dtype="bool")
+                has_inverse_ant = numpy.zeros([nant, vchan], dtype="bool")
                 if inverse:
                     igain = gain.copy()
                     cigain = cgain.copy()
                     for a1 in range(nants):
-                        for chan in range(nchan):
+                        for chan in range(vchan):
                             try:
-                                igain[a1, chan, :, :] = numpy.linalg.inv(
-                                    gain[a1, chan, :, :]
+                                igain[
+                                    a1, vchan_to_nchan[chan], :, :
+                                ] = numpy.linalg.inv(
+                                    gain[a1, vchan_to_nchan[chan], :, :]
                                 )
-                                cigain[a1, chan, :, :] = numpy.conjugate(
-                                    igain[a1, chan, :, :]
+                                cigain[
+                                    a1, vchan_to_nchan[chan], :, :
+                                ] = numpy.conjugate(
+                                    igain[a1, vchan_to_nchan[chan], :, :]
                                 )
                                 has_inverse_ant[a1, chan] = True
                             except numpy.linalg.LinAlgError:
@@ -141,7 +154,7 @@ def apply_gaintable(
 
                     for sub_vis_row in range(original.shape[0]):
                         for ibaseline, (a1, a2) in enumerate(baselines):
-                            for chan in range(nchan):
+                            for chan in range(vchan):
                                 if (
                                     has_inverse_ant[a1, chan]
                                     and has_inverse_ant[a2, chan]
@@ -154,9 +167,11 @@ def apply_gaintable(
                                     applied[
                                         sub_vis_row, ibaseline, chan, ...
                                     ] = numpy.diag(
-                                        igain[a1, chan, :, :]
+                                        igain[a1, vchan_to_nchan[chan], :, :]
                                         @ cfs
-                                        @ cigain[a2, chan, :, :]
+                                        @ cigain[
+                                            a2, vchan_to_nchan[chan], :, :
+                                        ]
                                     ).reshape(
                                         [2]
                                     )
@@ -171,33 +186,37 @@ def apply_gaintable(
                 else:
                     for sub_vis_row in range(original.shape[0]):
                         for ibaseline, (a1, a2) in enumerate(baselines):
-                            for chan in range(nchan):
+                            for chan in range(vchan):
                                 cfs = numpy.diag(
                                     original[sub_vis_row, ibaseline, chan, ...]
                                 )
                                 applied[
                                     sub_vis_row, ibaseline, chan, ...
                                 ] = numpy.diag(
-                                    gain[a1, chan, :, :]
+                                    gain[a1, vchan_to_nchan[chan], :, :]
                                     @ cfs
-                                    @ cgain[a2, chan, :, :]
+                                    @ cgain[a2, vchan_to_nchan[chan], :, :]
                                 ).reshape(
                                     [2]
                                 )
 
             elif vis.visibility_acc.npol == 4:
-                has_inverse_ant = numpy.zeros([nant, nchan], dtype="bool")
+                has_inverse_ant = numpy.zeros([nant, vchan], dtype="bool")
                 if inverse:
                     igain = gain.copy()
                     cigain = cgain.copy()
                     for a1 in range(nants):
-                        for chan in range(nchan):
+                        for chan in range(vchan):
                             try:
-                                igain[a1, chan, :, :] = numpy.linalg.inv(
-                                    gain[a1, chan, :, :]
+                                igain[
+                                    a1, vchan_to_nchan[chan], :, :
+                                ] = numpy.linalg.inv(
+                                    gain[a1, vchan_to_nchan[chan], :, :]
                                 )
-                                cigain[a1, chan, :, :] = numpy.conjugate(
-                                    igain[a1, chan, :, :]
+                                cigain[
+                                    a1, vchan_to_nchan[chan], :, :
+                                ] = numpy.conjugate(
+                                    igain[a1, vchan_to_nchan[chan], :, :]
                                 )
                                 has_inverse_ant[a1, chan] = True
                             except numpy.linalg.LinAlgError:
@@ -205,7 +224,7 @@ def apply_gaintable(
 
                     for sub_vis_row in range(original.shape[0]):
                         for ibaseline, baseline in enumerate(baselines):
-                            for chan in range(nchan):
+                            for chan in range(vchan):
                                 if (
                                     has_inverse_ant[baseline[0], chan]
                                     and has_inverse_ant[baseline[1], chan]
@@ -216,9 +235,19 @@ def apply_gaintable(
                                     applied[
                                         sub_vis_row, ibaseline, chan, ...
                                     ] = (
-                                        igain[baseline[0], chan, :, :]
+                                        igain[
+                                            baseline[0],
+                                            vchan_to_nchan[chan],
+                                            :,
+                                            :,
+                                        ]
                                         @ cfs
-                                        @ cigain[baseline[1], chan, :, :]
+                                        @ cigain[
+                                            baseline[1],
+                                            vchan_to_nchan[chan],
+                                            :,
+                                            :,
+                                        ]
                                     ).reshape(
                                         [4]
                                     )
@@ -232,14 +261,18 @@ def apply_gaintable(
                 else:
                     for sub_vis_row in range(original.shape[0]):
                         for ibaseline, baseline in enumerate(baselines):
-                            for chan in range(nchan):
+                            for chan in range(vchan):
                                 cfs = original[
                                     sub_vis_row, ibaseline, chan, ...
                                 ].reshape([2, 2])
                                 applied[sub_vis_row, ibaseline, chan, ...] = (
-                                    gain[baseline[0], chan, :, :]
+                                    gain[
+                                        baseline[0], vchan_to_nchan[chan], :, :
+                                    ]
                                     @ cfs
-                                    @ cgain[baseline[1], chan, :, :]
+                                    @ cgain[
+                                        baseline[1], vchan_to_nchan[chan], :, :
+                                    ]
                                 ).reshape([4])
 
             else:
