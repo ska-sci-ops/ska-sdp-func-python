@@ -1,9 +1,13 @@
 """ Utility functions used by solvers. Based on the Yandasoft algorithm. """
+# I will fix these if I can before the MR
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-statements
+# pylint: disable=invalid-name
 
 import numpy as np
-from numpy import conj as conj
-from numpy import imag as imag
-from numpy import real as real
+from numpy import conj, imag, real
 
 
 def update_design_matrix(
@@ -995,11 +999,12 @@ def gen_pol_matrix(gXi, gYi, dXYi, dYXi, gXj, gYj, dXYj, dYXj):
 
     return np.array(M)
 
+
 def gen_coherency_products(Som, Smm, vobs, vmdl, wgt, ant, ant1, ant2):
     """
     Generate the 2x2 accumulations of coherency matrix products for antenna
     ant. Using a boolean mask for each antenna and expanding all of the matrix
-    multiplication operations is faster than looping over baselines. 
+    multiplication operations is faster than looping over baselines.
 
     :param Som: accumulation matrices for observed vis multiplied by the
         Hermitian transpose of model vis [nant, nfreq, 2, 2]
@@ -1018,74 +1023,58 @@ def gen_coherency_products(Som, Smm, vobs, vmdl, wgt, ant, ant1, ant2):
     Som[0, 0] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vobs[:, ind, :, 0, 0]
-            * vmdl[:, ind, :, 0, 0].conj()
-            + vobs[:, ind, :, 0, 1]
-            * vmdl[:, ind, :, 0, 1].conj()
+            vobs[:, ind, :, 0, 0] * vmdl[:, ind, :, 0, 0].conj()
+            + vobs[:, ind, :, 0, 1] * vmdl[:, ind, :, 0, 1].conj()
         )
     )
     Som[0, 1] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vobs[:, ind, :, 0, 0]
-            * vmdl[:, ind, :, 1, 0].conj()
-            + vobs[:, ind, :, 0, 1]
-            * vmdl[:, ind, :, 1, 1].conj()
+            vobs[:, ind, :, 0, 0] * vmdl[:, ind, :, 1, 0].conj()
+            + vobs[:, ind, :, 0, 1] * vmdl[:, ind, :, 1, 1].conj()
         )
     )
     Som[1, 0] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vobs[:, ind, :, 1, 0]
-            * vmdl[:, ind, :, 0, 0].conj()
-            + vobs[:, ind, :, 1, 1]
-            * vmdl[:, ind, :, 0, 1].conj()
+            vobs[:, ind, :, 1, 0] * vmdl[:, ind, :, 0, 0].conj()
+            + vobs[:, ind, :, 1, 1] * vmdl[:, ind, :, 0, 1].conj()
         )
     )
     Som[1, 1] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vobs[:, ind, :, 1, 0]
-            * vmdl[:, ind, :, 1, 0].conj()
-            + vobs[:, ind, :, 1, 1]
-            * vmdl[:, ind, :, 1, 1].conj()
+            vobs[:, ind, :, 1, 0] * vmdl[:, ind, :, 1, 0].conj()
+            + vobs[:, ind, :, 1, 1] * vmdl[:, ind, :, 1, 1].conj()
         )
     )
     #
     Smm[0, 0] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vmdl[:, ind, :, 0, 0]
-            * vmdl[:, ind, :, 0, 0].conj()
-            + vmdl[:, ind, :, 0, 1]
-            * vmdl[:, ind, :, 0, 1].conj()
+            vmdl[:, ind, :, 0, 0] * vmdl[:, ind, :, 0, 0].conj()
+            + vmdl[:, ind, :, 0, 1] * vmdl[:, ind, :, 0, 1].conj()
         )
     )
     Smm[0, 1] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vmdl[:, ind, :, 0, 0]
-            * vmdl[:, ind, :, 1, 0].conj()
-            + vmdl[:, ind, :, 0, 1]
-            * vmdl[:, ind, :, 1, 1].conj()
+            vmdl[:, ind, :, 0, 0] * vmdl[:, ind, :, 1, 0].conj()
+            + vmdl[:, ind, :, 0, 1] * vmdl[:, ind, :, 1, 1].conj()
         )
     )
     Smm[1, 0] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vmdl[:, ind, :, 1, 0]
-            * vmdl[:, ind, :, 0, 0].conj()
-            + vmdl[:, ind, :, 1, 1]
-            * vmdl[:, ind, :, 0, 1].conj()
+            vmdl[:, ind, :, 1, 0] * vmdl[:, ind, :, 0, 0].conj()
+            + vmdl[:, ind, :, 1, 1] * vmdl[:, ind, :, 0, 1].conj()
         )
     )
     Smm[1, 1] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vmdl[:, ind, :, 1, 0]
-            * vmdl[:, ind, :, 1, 0].conj()
-            + vmdl[:, ind, :, 1, 1]
-            * vmdl[:, ind, :, 1, 1].conj()
+            vmdl[:, ind, :, 1, 0] * vmdl[:, ind, :, 1, 0].conj()
+            + vmdl[:, ind, :, 1, 1] * vmdl[:, ind, :, 1, 1].conj()
         )
     )
     # update np.sums for station 2
@@ -1094,73 +1083,57 @@ def gen_coherency_products(Som, Smm, vobs, vmdl, wgt, ant, ant1, ant2):
     Som[0, 0] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vobs[:, ind, :, 0, 0].conj()
-            * vmdl[:, ind, :, 0, 0]
-            + vobs[:, ind, :, 1, 0].conj()
-            * vmdl[:, ind, :, 1, 0]
+            vobs[:, ind, :, 0, 0].conj() * vmdl[:, ind, :, 0, 0]
+            + vobs[:, ind, :, 1, 0].conj() * vmdl[:, ind, :, 1, 0]
         )
     )
     Som[0, 1] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vobs[:, ind, :, 0, 0].conj()
-            * vmdl[:, ind, :, 0, 1]
-            + vobs[:, ind, :, 1, 0].conj()
-            * vmdl[:, ind, :, 1, 1]
+            vobs[:, ind, :, 0, 0].conj() * vmdl[:, ind, :, 0, 1]
+            + vobs[:, ind, :, 1, 0].conj() * vmdl[:, ind, :, 1, 1]
         )
     )
     Som[1, 0] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vobs[:, ind, :, 0, 1].conj()
-            * vmdl[:, ind, :, 0, 0]
-            + vobs[:, ind, :, 1, 1].conj()
-            * vmdl[:, ind, :, 1, 0]
+            vobs[:, ind, :, 0, 1].conj() * vmdl[:, ind, :, 0, 0]
+            + vobs[:, ind, :, 1, 1].conj() * vmdl[:, ind, :, 1, 0]
         )
     )
     Som[1, 1] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vobs[:, ind, :, 0, 1].conj()
-            * vmdl[:, ind, :, 0, 1]
-            + vobs[:, ind, :, 1, 1].conj()
-            * vmdl[:, ind, :, 1, 1]
+            vobs[:, ind, :, 0, 1].conj() * vmdl[:, ind, :, 0, 1]
+            + vobs[:, ind, :, 1, 1].conj() * vmdl[:, ind, :, 1, 1]
         )
     )
     #
     Smm[0, 0] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vmdl[:, ind, :, 0, 0].conj()
-            * vmdl[:, ind, :, 0, 0]
-            + vmdl[:, ind, :, 1, 0].conj()
-            * vmdl[:, ind, :, 1, 0]
+            vmdl[:, ind, :, 0, 0].conj() * vmdl[:, ind, :, 0, 0]
+            + vmdl[:, ind, :, 1, 0].conj() * vmdl[:, ind, :, 1, 0]
         )
     )
     Smm[0, 1] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vmdl[:, ind, :, 0, 0].conj()
-            * vmdl[:, ind, :, 0, 1]
-            + vmdl[:, ind, :, 1, 0].conj()
-            * vmdl[:, ind, :, 1, 1]
+            vmdl[:, ind, :, 0, 0].conj() * vmdl[:, ind, :, 0, 1]
+            + vmdl[:, ind, :, 1, 0].conj() * vmdl[:, ind, :, 1, 1]
         )
     )
     Smm[1, 0] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vmdl[:, ind, :, 0, 1].conj()
-            * vmdl[:, ind, :, 0, 0]
-            + vmdl[:, ind, :, 1, 1].conj()
-            * vmdl[:, ind, :, 1, 0]
+            vmdl[:, ind, :, 0, 1].conj() * vmdl[:, ind, :, 0, 0]
+            + vmdl[:, ind, :, 1, 1].conj() * vmdl[:, ind, :, 1, 0]
         )
     )
     Smm[1, 1] += np.sum(
         wgt[:, ind, :, 0]
         * (
-            vmdl[:, ind, :, 0, 1].conj()
-            * vmdl[:, ind, :, 0, 1]
-            + vmdl[:, ind, :, 1, 1].conj()
-            * vmdl[:, ind, :, 1, 1]
+            vmdl[:, ind, :, 0, 1].conj() * vmdl[:, ind, :, 0, 1]
+            + vmdl[:, ind, :, 1, 1].conj() * vmdl[:, ind, :, 1, 1]
         )
     )

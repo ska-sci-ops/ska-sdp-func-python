@@ -1,6 +1,15 @@
 """
 Functions to solve for antenna/station gain.
 """
+# I will fix these if I can before the MR
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-branches
+# pylint: disable=invalid-name
+# if I fix these, black complains...
+# flake8: noqa E203
 
 __all__ = ["solve_gaintable"]
 
@@ -17,10 +26,10 @@ from ska_sdp_datamodels.calibration.calibration_model import GainTable
 from ska_sdp_datamodels.visibility.vis_model import Visibility
 
 from ska_sdp_func_python.calibration.solver_utils import (
-    update_design_matrix,
     gen_cdm,
-    gen_pol_matrix,
     gen_coherency_products,
+    gen_pol_matrix,
+    update_design_matrix,
 )
 from ska_sdp_func_python.visibility.operations import divide_visibility
 
@@ -125,7 +134,7 @@ def solve_gaintable(
             leakage terms.
         "normal_equations_presum" - the same as the normal_equations option
             but with an initial accumulation of visibility products over time
-            and frequency for each solution interval. This can be much faster 
+            and frequency for each solution interval. This can be much faster
             for large datasets and solution intervals.
     :param jones_type: Type of calibration matrix T or G or B
     :param timeslice: Time interval between solutions (s)
@@ -159,8 +168,9 @@ def solve_gaintable(
     axes = (0, 2) if nchan == 1 else 0
 
     # disable this if not needed by the solver
-    pointvis = divide_visibility(vis, modelvis) \
-        if modelvis is not None else vis
+    pointvis = (
+        divide_visibility(vis, modelvis) if modelvis is not None else vis
+    )
 
     # moved this here so it doesn't change with time slice...
     refant_sort = find_best_refant_from_vis(pointvis)
@@ -237,7 +247,7 @@ def solve_gaintable(
                 xwt[a1, a2, ...] = xwt_b[ibaseline, ...]
                 x[a2, a1, ...] = x_b[ibaseline, ...]
                 xwt[a2, a1, ...] = xwt_b[ibaseline, ...]
-         
+
             mask = numpy.abs(xwt) > 0.0
             if numpy.sum(mask) > 0:
                 _solve_with_mask(
@@ -359,7 +369,7 @@ def jones_sub_solve(
     niter,
     row,
     tol,
-    refant,
+    refant,  # pylint: disable=unused-argument
 ):
     """
     Solve this row (time slice) of the gain table
@@ -369,16 +379,15 @@ def jones_sub_solve(
     ntime, nbl, nchan_vis, _ = vis.vis.shape
     assert nrec1 == 2
     assert nrec1 == nrec2
-    assert nchan_gt == 1 or nchan_gt == nchan_vis
+    assert nchan_gt in (1, nchan_vis)
     chgt = numpy.zeros(nchan_vis, "int") if nchan_gt == 1 else range(nchan_vis)
 
     ant1 = vis.antenna1.data
     ant2 = vis.antenna2.data
 
-    # todo: should the nchan_gt loop be outside the niter loop?
+    # to do: should the nchan_gt loop be outside the niter loop?
 
     for it in range(niter):
-
         gainLast = gain.copy()
         update = _jones_substitution(
             gain, vis.vis.data, modelvis.vis.data, vis.weight.data, ant1, ant2
@@ -386,7 +395,7 @@ def jones_sub_solve(
 
         # nu = 0.5
         nu = 1.0 - 0.5 * (it % 2)
- 
+
         for ant in range(nants):
             for ch in range(nchan_gt):
                 update[ant, ch] = numpy.eye(2) + nu * (
@@ -408,9 +417,8 @@ def jones_sub_solve(
         change = numpy.max(numpy.abs(gain - gainLast))
 
         if change < tol:
-            if refant >= 0:
-                angles = numpy.angle(gain)
-                gain *= numpy.exp(-1j * angles)[refant, ...]
+            # angles = numpy.angle(gain)
+            # gain *= numpy.exp(-1j * angles)[refant, ...]
             return
 
     log.warning("jones_sub_solve: gain solution failed to converge")
@@ -423,16 +431,17 @@ def _normal_equation_solve(
     niter,
     row,
     tol,
-    refant,
+    refant,  # pylint: disable=unused-argument
 ):
     """
+    Solve this row (time slice) of the gain table
     """
     gain = gain_table["gain"].data[row, ...]
     nants, nchan_gt, nrec1, nrec2 = gain.shape
     ntime, nbl, nchan_vis, _ = vis.vis.shape
     assert nrec1 == 2
     assert nrec1 == nrec2
-    assert nchan_gt == 1 or nchan_gt == nchan_vis
+    assert nchan_gt in (1, nchan_vis)
     chgt = numpy.zeros(nchan_vis, "int") if nchan_gt == 1 else range(nchan_vis)
 
     # convert Jones matrices to gain and leakage terms
@@ -450,16 +459,15 @@ def _normal_equation_solve(
     ant1 = vis.antenna1.data
     ant2 = vis.antenna2.data
 
-    # todo: include weighting (e.g. as diagonal matrix W: A.T @ W @ A)
-    # todo: move the nchan_gt loop outside the niter loop
+    # to do: include weighting (e.g. as diagonal matrix W: A.T @ W @ A)
+    # to do: move the nchan_gt loop outside the niter loop
 
     vmdl0 = modelvis.vis.data.reshape(ntime, nbl, nchan_vis, 2, 2)
 
     # vmdl = numpy.empty(vmdl0.shape, "complex")
     vmdl = vmdl0.copy()
 
-    for it in range(niter):
-
+    for _ in range(niter):
         # multiply model by the current gain estimates
         for t in range(ntime):
             for k in range(nbl):
@@ -484,7 +492,7 @@ def _normal_equation_solve(
 
         # nu = 0.5
         nu = 1.0
- 
+
         gX += nu * update[0]
         gY += nu * update[1]
         dXY += nu * update[2]
@@ -502,12 +510,12 @@ def _normal_equation_solve(
         change = numpy.max(numpy.abs(gain - gainLast))
 
         if change < tol:
-            if refant >= 0:
-                angles = numpy.angle(gain)
-                gain *= numpy.exp(-1j * angles)[refant, ...]
+            # angles = numpy.angle(gain)
+            # gain *= numpy.exp(-1j * angles)[refant, ...]
             return
 
     log.warning("_normal_equation_solve: gain solution failed to converge")
+
 
 def _normal_equation_solve_with_presumming(
     vis: Visibility,
@@ -516,23 +524,22 @@ def _normal_equation_solve_with_presumming(
     niter,
     row,
     tol,
-    refant,
+    refant,  # pylint: disable=unused-argument
 ):
     """
+    Solve this row (time slice) of the gain table
     """
     gain = gain_table["gain"].data[row, ...]
     nants, nchan_gt, nrec1, nrec2 = gain.shape
     ntime, nbl, nchan_vis, _ = vis.vis.shape
     assert nrec1 == 2
     assert nrec1 == nrec2
-    assert nchan_gt == 1 or nchan_gt == nchan_vis
-    chgt = numpy.zeros(nchan_vis, "int") if nchan_gt == 1 else range(nchan_vis)
+    assert nchan_gt in (1, nchan_vis)
 
     ant1 = vis.antenna1.data
     ant2 = vis.antenna2.data
 
     for ch in range(nchan_gt):
-
         # convert Jones matrices to gain and leakage terms
         gX = numpy.zeros(nants, "complex")
         gY = numpy.zeros(nants, "complex")
@@ -561,9 +568,8 @@ def _normal_equation_solve_with_presumming(
                     wgt = vis.weight.data[t, k, f, 0]
                     Smo[k] += wgt * mdlVec.conj().T @ obsVec
                     Smm[k] += wgt * mdlVec.conj().T @ mdlVec
- 
+
         for it in range(niter):
- 
             update = _calc_and_solve_normal_equations_with_presumming(
                 gX,
                 gY,
@@ -574,15 +580,15 @@ def _normal_equation_solve_with_presumming(
                 ant1,
                 ant2,
             )
- 
+
             # nu = 0.5
             nu = 1.0
-  
+
             gX += nu * update[0]
             gY += nu * update[1]
             dXY += nu * update[2]
             dYX += nu * update[3]
- 
+
             # update jones
             gainLast = gain.copy()
             for ant in range(nants):
@@ -590,15 +596,14 @@ def _normal_equation_solve_with_presumming(
                     [gX[ant], gX[ant] * dXY[ant]],
                     [-gY[ant] * dYX[ant], gY[ant]],
                 ]
- 
+
             change = numpy.max(numpy.abs(gain - gainLast))
- 
+
             if change < tol:
-                if refant >= 0:
-                    angles = numpy.angle(gain)
-                    gain *= numpy.exp(-1j * angles)[refant, ...]
+                # angles = numpy.angle(gain)
+                # gain *= numpy.exp(-1j * angles)[refant, ...]
                 break
- 
+
             if it == niter - 1:
                 log.warning(
                     "_normal_equation_solve gain channel %d: \
@@ -931,7 +936,7 @@ def _solve_antenna_gains_itsubs_matrix(
         gain = 0.5 * (gain + gainLast)
         if change < tol:
             angles = numpy.angle(gain)
-            if refant >= 0: gain *= numpy.exp(-1j * angles)[refant, ...]
+            gain *= numpy.exp(-1j * angles)[refant, ...]
             numpy.putmask(gain, gainmask, 1.0)
             numpy.putmask(gain, cross_mask, 0.0)
             return gain, gwt, _solution_residual_matrix(gain, x, xwt)
@@ -941,7 +946,7 @@ def _solve_antenna_gains_itsubs_matrix(
         "gain solution failed, retaining gain solutions"
     )
     angles = numpy.angle(gain)
-    if refant >= 0: gain *= numpy.exp(-1j * angles)[refant, ...]
+    gain *= numpy.exp(-1j * angles)[refant, ...]
     numpy.putmask(gain, gainmask, 1.0)
     numpy.putmask(gain, cross_mask, 0.0)
     return gain, gwt, _solution_residual_matrix(gain, x, xwt)
@@ -1085,7 +1090,7 @@ def _calc_and_solve_normal_equations(
     dYX,
     vis,
     modelvis,
-    wgt,
+    wgt,  # pylint: disable=unused-argument
     ant1,
     ant2,
 ):
@@ -1096,9 +1101,9 @@ def _calc_and_solve_normal_equations(
         and leakage estimates [nant, nchan]
     :param vis: Visibility containing the observed data_models
     :param modelvis: Visibility containing the visibility predicted by a model
-    :param wgt: 
-    :param ant1: 
-    :param ant2: 
+    :param wgt:
+    :param ant1:
+    :param ant2:
     :return [gX,gY,dXY,dYX]: 2D numpy arrays containing the complex gain and
         leakage updates [nant, nchan]
     """
@@ -1130,52 +1135,52 @@ def _calc_and_solve_normal_equations(
             for k in range(nbl):
                 if ant1[k] == ant2[k]:
                     continue
-             
+
                 i = ant1[k]
                 j = ant2[k]
-             
+
                 ix2 = 2 * i
                 jx2 = 2 * j
                 kx2 = 2 * k
-                
+
                 # perhaps move most of these into update_design_matrix?
-             
+
                 # visibility indices (i.e. design matrix rows)
                 kXX = kx2
                 kYY = kx2 + 2 * nbl
                 kXY = kx2 + 4 * nbl
                 kYX = kx2 + 6 * nbl
-                
+
                 # parameter indices (i.e. design matrix columns)
                 iXX = ix2
                 iYY = ix2 + 2 * nants
                 iXY = ix2 + 4 * nants
                 iYX = ix2 + 6 * nants
-                
+
                 jXX = jx2
                 jYY = jx2 + 2 * nants
                 jXY = jx2 + 4 * nants
                 jYX = jx2 + 6 * nants
-                
+
                 # Update the normal equation data vector for this visibility
-             
+
                 sres = vobs[t, k, f] - vmdl[t, k, f]
-             
+
                 dv[kXX] = numpy.real(sres[0, 0])
                 dv[kYY] = numpy.real(sres[1, 1])
                 dv[kXY] = numpy.real(sres[0, 1])
                 dv[kYX] = numpy.real(sres[1, 0])
-                
+
                 dv[kXX + 1] = numpy.imag(sres[0, 0])
                 dv[kYY + 1] = numpy.imag(sres[1, 1])
                 dv[kXY + 1] = numpy.imag(sres[0, 1])
                 dv[kYX + 1] = numpy.imag(sres[1, 0])
-             
+
                 # Update the normal equation design matrix with the first
                 # derivatives of the real and imag parts of linearly polarised
-                # visibilities for baseline i-j with respect to all relevant gain
-                # and leakage free parameters.
-             
+                # visibilities for baseline i-j with respect to all relevant
+                # gain and leakage free parameters.
+
                 update_design_matrix(
                     A,
                     kXX,
@@ -1211,10 +1216,7 @@ def _calc_and_solve_normal_equations(
         # if each channel needs its own solution or this is the last channel,
         # solve the normal equations
         if nchan_gt == nchan_vis or f == nchan_vis - 1:
-  
-            gfit, istop, itn, normr = lsmr(
-                csc_matrix(AA, dtype=float), Av
-            )[:4]
+            gfit = lsmr(csc_matrix(AA, dtype=float), Av)[0]
 
             gX_update[:, ch] = (
                 gfit[0 * nants : 2 * nants - 1 : 2]
@@ -1232,12 +1234,11 @@ def _calc_and_solve_normal_equations(
                 gfit[6 * nants : 8 * nants - 1 : 2]
                 + 1j * gfit[6 * nants + 1 : 8 * nants : 2]
             )
- 
+
             if f < nchan_vis - 1:
                 # reset the accumulation arrays
                 AA = numpy.zeros([8 * nants, 8 * nants])
                 Av = numpy.zeros([8 * nants, 1])
-
 
     return [gX_update, gY_update, dXY_update, dYX_update]
 
@@ -1259,8 +1260,8 @@ def _calc_and_solve_normal_equations_with_presumming(
         and leakage estimates [nant]
     :param vis: Visibility containing the observed data_models
     :param modelvis: Visibility containing the visibility predicted by a model
-    :param ant1: 
-    :param ant2: 
+    :param ant1:
+    :param ant2:
     :return [gX,gY,dXY,dYX]: 2D numpy arrays containing the complex gain and
         leakage updates [nant]
     """
@@ -1280,31 +1281,24 @@ def _calc_and_solve_normal_equations_with_presumming(
     for k in range(nbl):
         if ant1[k] == ant2[k]:
             continue
-     
+
         i = ant1[k]
         j = ant2[k]
-     
+
         ix2 = 2 * i
         jx2 = 2 * j
-        kx2 = 2 * k
-        
-        # visibility indices (i.e. design matrix rows)
-        kXX = kx2
-        kYY = kx2 + 2 * nbl
-        kXY = kx2 + 4 * nbl
-        kYX = kx2 + 6 * nbl
-        
-        # parameter indices (i.e. design matrix columns)
+
+        # parameter indices (i.e. row and column indices)
         iXX = ix2
         iYY = ix2 + 2 * nants
         iXY = ix2 + 4 * nants
         iYX = ix2 + 6 * nants
-        
+
         jXX = jx2
         jYY = jx2 + 2 * nants
         jXY = jx2 + 4 * nants
         jYX = jx2 + 6 * nants
-        
+
         # Generate a 4x4 Complex Diff matrix for each relevant gain
         # and leakage free parameter of baseline i-j.
         params = gen_cdm(
@@ -1316,7 +1310,7 @@ def _calc_and_solve_normal_equations_with_presumming(
         values = gen_pol_matrix(
             gX[i], gY[i], dXY[i], dYX[i], gX[j], gY[j], dXY[j], dYX[j]
         )
-     
+
         pos = numpy.zeros(8, "int")
         pos[0] = iXX
         pos[1] = jXX
@@ -1326,7 +1320,7 @@ def _calc_and_solve_normal_equations_with_presumming(
         pos[5] = jXY
         pos[6] = iYX
         pos[7] = jYX
-     
+
         for param1 in range(8):
             pos1 = pos[param1]
             v_re = 0
@@ -1365,9 +1359,7 @@ def _calc_and_solve_normal_equations_with_presumming(
                     numpy.real((p1ImH @ pIm[param2]) * Smm[k])
                 )
 
-    gfit, istop, itn, normr = lsmr(
-        csc_matrix(AA, dtype=float), Av
-    )[:4]
+    gfit = lsmr(csc_matrix(AA, dtype=float), Av)[0]
 
     gX_update = (
         gfit[0 * nants : 2 * nants - 1 : 2]
