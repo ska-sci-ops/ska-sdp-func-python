@@ -1122,8 +1122,8 @@ def _calc_and_solve_normal_equations(
 
     # accumulation space for normal eqautions products
     #  - all stations x 4 pol x real & imag
-    #AA = numpy.zeros([8 * nants, 8 * nants])
-    #Av = numpy.zeros([8 * nants, 1])
+    # AA = numpy.zeros([8 * nants, 8 * nants])
+    # Av = numpy.zeros([8 * nants, 1])
 
     # for performance reasons, average all times and frequencies into these
     # matrices. For larger averages with variability in time or frequency, use
@@ -1135,7 +1135,6 @@ def _calc_and_solve_normal_equations(
         ch = chgt[f]
 
         for t in range(ntime):
-
             # If the model is changing over the averaging time or frequency,
             # these arrays should either have extra rows for time and frequency
             # or be averaged into the AA and Av arrays within the time and
@@ -1229,7 +1228,6 @@ def _calc_and_solve_normal_equations(
         if nchan_gt == nchan_vis or f == nchan_vis - 1:
             # gfit = lsmr(csc_matrix(AA, dtype=float), Av)[0]
             gfit = lsmr(csc_matrix(A, dtype=float), dv)[0]
-
 
             gX_update[:, ch] = (
                 gfit[0 * nants : 2 * nants - 1 : 2]
