@@ -1122,16 +1122,27 @@ def _calc_and_solve_normal_equations(
 
     # accumulation space for normal eqautions products
     #  - all stations x 4 pol x real & imag
-    AA = numpy.zeros([8 * nants, 8 * nants])
-    Av = numpy.zeros([8 * nants, 1])
+    #AA = numpy.zeros([8 * nants, 8 * nants])
+    #Av = numpy.zeros([8 * nants, 1])
+
+    # for performance reasons, average all times and frequencies into these
+    # matrices. For larger averages with variability in time or frequency, use
+    # _calc_and_solve_normal_equations_with_presumming
+    A = numpy.zeros([8 * nbl, 8 * nants])
+    dv = numpy.zeros([8 * nbl, 1])
 
     for f in range(nchan_vis):
         ch = chgt[f]
 
-        A = numpy.zeros([8 * nbl, 8 * nants])
-        dv = numpy.zeros([8 * nbl, 1])
-
         for t in range(ntime):
+
+            # If the model is changing over the averaging time or frequency,
+            # these arrays should either have extra rows for time and frequency
+            # or be averaged into the AA and Av arrays within the time and
+            # frequency loops
+            # A = numpy.zeros([8 * nbl, 8 * nants])
+            # dv = numpy.zeros([8 * nbl, 1])
+
             for k in range(nbl):
                 if ant1[k] == ant2[k]:
                     continue
@@ -1210,13 +1221,15 @@ def _calc_and_solve_normal_equations(
                 )
 
         # update normal equations for this channel
-        AA += A.T @ A
-        Av += A.T @ dv
+        # AA += A.T @ A
+        # Av += A.T @ dv
 
         # if each channel needs its own solution or this is the last channel,
         # solve the normal equations
         if nchan_gt == nchan_vis or f == nchan_vis - 1:
-            gfit = lsmr(csc_matrix(AA, dtype=float), Av)[0]
+            # gfit = lsmr(csc_matrix(AA, dtype=float), Av)[0]
+            gfit = lsmr(csc_matrix(A, dtype=float), dv)[0]
+
 
             gX_update[:, ch] = (
                 gfit[0 * nants : 2 * nants - 1 : 2]
@@ -1237,8 +1250,10 @@ def _calc_and_solve_normal_equations(
 
             if f < nchan_vis - 1:
                 # reset the accumulation arrays
-                AA = numpy.zeros([8 * nants, 8 * nants])
-                Av = numpy.zeros([8 * nants, 1])
+                # AA = numpy.zeros([8 * nants, 8 * nants])
+                # Av = numpy.zeros([8 * nants, 1])
+                A = numpy.zeros([8 * nbl, 8 * nants])
+                dv = numpy.zeros([8 * nbl, 1])
 
     return [gX_update, gY_update, dXY_update, dYX_update]
 
