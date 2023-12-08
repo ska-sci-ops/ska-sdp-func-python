@@ -13,13 +13,13 @@ url = "https://artefact.skao.int/repository/pypi-internal/simple"
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.13"
-astroplan = "^0.9"
-astropy = "^5.3"
+astroplan = ">=0.9"
+astropy = ">=5.3"
 ducc0 = ">=0.2.7"
 numpy = "^1.25"
 photutils = "^1.9"
 scipy = "^1.11"
-ska-sdp-datamodels = "^0.2.3"
+ska-sdp-datamodels = ">=0.2.3"
 xarray = "^2023.7.0"
 
 # optional dependencies; used by "extras"
